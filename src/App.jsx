@@ -784,39 +784,32 @@ function handleCancelAtsChanges() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="sidebar-brand">
-          <div className="brand-mark small">ATS</div>
-          <div>
-            <p className="eyebrow">Music faculty</p>
-            <h2>Planner</h2>
-          </div>
-        </div>
+  <div className="sidebar-brand">
+    <div className="brand-mark small">ATS</div>
+    <div>
+      <p className="eyebrow">Music faculty</p>
+      <h2>Planner</h2>
+    </div>
+  </div>
 
-        <nav className="sidebar-nav">
-          <button
-            className={screen === "dashboard" ? "nav-link active" : "nav-link"}
-            onClick={() => setScreen("dashboard")}
-          >
-            Dashboard
-          </button>
-          <button
-            className={screen === "lecturer" ? "nav-link active" : "nav-link"}
-            onClick={() => setScreen("lecturer")}
-          >
-            Lecturer ATS
-          </button>
-          {canAccessSettings ? (
-            <button
-              className={screen === "settings" ? "nav-link active" : "nav-link"}
-              onClick={() => setScreen("settings")}
-            >
-              Settings
-            </button>
-          ) : null}
-        </nav>
+  <nav className="sidebar-nav">
+    <button
+      className={screen === "dashboard" ? "nav-link active" : "nav-link"}
+      onClick={() => setScreen("dashboard")}
+    >
+      Dashboard
+    </button>
 
-
-      </aside>
+    {selectedLecturer ? (
+      <button
+        className={screen === "lecturer" ? "nav-link active" : "nav-link"}
+        onClick={() => openLecturer(selectedLecturer.id)}
+      >
+        Lecturer ATS
+      </button>
+    ) : null}
+  </nav>
+</aside>
 
       <main className="main-panel">
         <header className="topbar">
@@ -837,13 +830,37 @@ function handleCancelAtsChanges() {
             </h1>
           </div>
 
-          <div className="topbar-actions">
-            {screen !== "dashboard" ? (
-              <button className="ghost-button" onClick={() => setScreen("dashboard")}>
-                Back to Dashboard
-              </button>
-            ) : null}
-          </div>
+          <div className="topbar-actions topbar-actions-right">
+  {screen !== "dashboard" ? (
+    <button className="ghost-button" onClick={() => setScreen("dashboard")}>
+      Back to Dashboard
+    </button>
+  ) : null}
+
+  {canAccessSettings ? (
+    <button
+      className={screen === "settings" ? "icon-button active" : "icon-button"}
+      onClick={() => setScreen("settings")}
+      aria-label="Settings"
+      title="Settings"
+    >
+      ⚙
+    </button>
+  ) : null}
+
+  <div className="user-chip user-chip-top">
+    <span className="status-dot" />
+    <div>
+      <strong>{currentUser?.displayName}</strong>
+      <p>{currentUser?.username}</p>
+    </div>
+  </div>
+
+  <button className="ghost-button" onClick={handleLogout}>
+    Logout
+  </button>
+</div>
+
         </header>
 
         {screen === "dashboard" ? (
@@ -1026,7 +1043,7 @@ function handleCancelAtsChanges() {
           </section>
         ) : null}
 
-        {screen === "lecturer" && selectedLecturer ? (
+{screen === "lecturer" && selectedLecturer ? (
   <section className="page-grid lecturer-page">
     <div className="panel panel-wide lecturer-summary-panel">
       <div className="lecturer-header-card lecturer-header-compact">
@@ -1069,33 +1086,6 @@ function handleCancelAtsChanges() {
           <p className="eyebrow">ATS workload table</p>
           <h3>Lecturer ATS entries</h3>
         </div>
-
-        <div className="action-row">
-          {!isAtsEditMode ? (
-            <>
-              {canEditAtsEntries ? (
-                <button className="ghost-button compact" onClick={handleStartEditAts}>
-                  Edit
-                </button>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <button
-                className="primary-button compact"
-                onClick={() => addAtsRow(selectedLecturer.id)}
-              >
-                Add ATS Row
-              </button>
-              <button className="primary-button compact" onClick={handleSaveAtsChanges}>
-                Save
-              </button>
-              <button className="ghost-button compact" onClick={handleCancelAtsChanges}>
-                Cancel
-              </button>
-            </>
-          )}
-        </div>
       </div>
 
       <div className="table-wrap">
@@ -1110,7 +1100,7 @@ function handleCancelAtsChanges() {
               <th className="col-small">K2</th>
               <th className="col-small">K3</th>
               <th className="col-notes">Notes</th>
-              {isAtsEditMode ? <th className="col-action">Action</th> : null}
+              {canEditAtsEntries ? <th className="col-action">Action</th> : null}
             </tr>
           </thead>
 
@@ -1119,20 +1109,20 @@ function handleCancelAtsChanges() {
               <tr key={entry.id}>
                 <td>
                   <textarea
-                    value={formatListSlash(entry.courseCodes)}
+                    value={entry.courseCodes.join(" / ")}
                     onChange={(e) =>
                       updateAtsListField(selectedLecturer.id, entry.id, "courseCodes", e.target.value)
                     }
-                    disabled={!isAtsEditMode}
+                    disabled={!canEditAtsEntries}
                   />
                 </td>
                 <td>
                   <textarea
-                    value={formatListSlash(entry.courseNames)}
+                    value={entry.courseNames.join(" / ")}
                     onChange={(e) =>
                       updateAtsListField(selectedLecturer.id, entry.id, "courseNames", e.target.value)
                     }
-                    disabled={!isAtsEditMode}
+                    disabled={!canEditAtsEntries}
                   />
                 </td>
                 <td>
@@ -1141,7 +1131,7 @@ function handleCancelAtsChanges() {
                     onChange={(e) =>
                       updateAtsListField(selectedLecturer.id, entry.id, "programs", e.target.value)
                     }
-                    disabled={!isAtsEditMode}
+                    disabled={!canEditAtsEntries}
                   />
                 </td>
                 <td>
@@ -1151,7 +1141,7 @@ function handleCancelAtsChanges() {
                     onChange={(e) =>
                       updateAtsEntry(selectedLecturer.id, entry.id, "ks", Number(e.target.value))
                     }
-                    disabled={!isAtsEditMode}
+                    disabled={!canEditAtsEntries}
                   />
                 </td>
                 <td>
@@ -1166,7 +1156,7 @@ function handleCancelAtsChanges() {
                         Number(e.target.value)
                       )
                     }
-                    disabled={!isAtsEditMode}
+                    disabled={!canEditAtsEntries}
                   />
                 </td>
                 <td>
@@ -1181,7 +1171,7 @@ function handleCancelAtsChanges() {
                         Number(e.target.value)
                       )
                     }
-                    disabled={!isAtsEditMode}
+                    disabled={!canEditAtsEntries}
                   />
                 </td>
                 <td>
@@ -1196,7 +1186,7 @@ function handleCancelAtsChanges() {
                         Number(e.target.value)
                       )
                     }
-                    disabled={!isAtsEditMode}
+                    disabled={!canEditAtsEntries}
                   />
                 </td>
                 <td>
@@ -1205,10 +1195,10 @@ function handleCancelAtsChanges() {
                     onChange={(e) =>
                       updateAtsEntry(selectedLecturer.id, entry.id, "notes", e.target.value)
                     }
-                    disabled={!isAtsEditMode}
+                    disabled={!canEditAtsEntries}
                   />
                 </td>
-                {isAtsEditMode ? (
+                {canEditAtsEntries ? (
                   <td>
                     <button
                       className="danger-button compact"
@@ -1224,15 +1214,40 @@ function handleCancelAtsChanges() {
 
           <tfoot>
             <tr className="totals-row">
-              <td colSpan={3}>
-                <strong>Totals</strong>
+              <td className="totals-label" colSpan={3}>
+                Totals
               </td>
-              <td>{getAtsColumnTotals(selectedLecturer).ks}</td>
-              <td>{getAtsColumnTotals(selectedLecturer).k1}</td>
-              <td>{getAtsColumnTotals(selectedLecturer).k2}</td>
-              <td>{getAtsColumnTotals(selectedLecturer).k3}</td>
+              <td>
+                <div className="total-box">
+                  {selectedLecturer.atsEntries.reduce((sum, entry) => sum + Number(entry.ks || 0), 0)}
+                </div>
+              </td>
+              <td>
+                <div className="total-box">
+                  {selectedLecturer.atsEntries.reduce(
+                    (sum, entry) => sum + Number(entry.k1Supervision || 0),
+                    0
+                  )}
+                </div>
+              </td>
+              <td>
+                <div className="total-box">
+                  {selectedLecturer.atsEntries.reduce(
+                    (sum, entry) => sum + Number(entry.k2Research || 0),
+                    0
+                  )}
+                </div>
+              </td>
+              <td>
+                <div className="total-box">
+                  {selectedLecturer.atsEntries.reduce(
+                    (sum, entry) => sum + Number(entry.k3Service || 0),
+                    0
+                  )}
+                </div>
+              </td>
               <td />
-              {isAtsEditMode ? <td /> : null}
+              {canEditAtsEntries ? <td /> : null}
             </tr>
           </tfoot>
         </table>

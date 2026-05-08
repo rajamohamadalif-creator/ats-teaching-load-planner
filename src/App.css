@@ -597,7 +597,7 @@ th {
 }
 
 .tag-row.spaced {
-  margin-top: -0.3rem;
+  margin-top: -0.75rem;
 }
 
 .header-metrics,
@@ -707,7 +707,13 @@ th {
 .lecturer-summary-panel {
   padding: 1rem;
 }
+.lecturer-summary-panel .tag-row {
+  margin-top: 0.75rem;
+}
 
+.lecturer-summary-panel .tag {
+  align-self: flex-start;
+}
 .lecturer-header-compact {
   padding: 0.95rem 1rem;
   align-items: stretch;
@@ -839,6 +845,123 @@ th {
   padding: 1rem;
   gap: 1rem;
 }
+.lecturer-summary-panel {
+  padding: 1rem;
+}
+
+.lecturer-header-compact {
+  padding: 0.95rem 1rem;
+  align-items: stretch;
+  gap: 0.85rem;
+}
+
+.lecturer-main-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.lecturer-main-info .muted-copy {
+  max-width: none;
+}
+
+.compact-metrics {
+  grid-template-columns: repeat(3, minmax(110px, 1fr));
+  gap: 0.65rem;
+  min-width: 360px;
+}
+
+.ats-panel {
+  background: rgba(16, 28, 58, 0.95);
+}
+
+.ats-table {
+  min-width: 100%;
+}
+
+.ats-table th,
+.ats-table td {
+  padding: 0.45rem 0.45rem;
+}
+
+.ats-table textarea,
+.ats-table input {
+  font-size: 0.92rem;
+}
+
+.ats-table textarea {
+  min-height: 54px;
+  line-height: 1.3;
+  padding: 0.55rem 0.65rem;
+}
+
+.ats-table input {
+  padding: 0.55rem 0.6rem;
+  min-width: 0;
+}
+
+.col-small {
+  width: 72px;
+}
+
+.col-course-code {
+  width: 150px;
+}
+
+.col-course-name {
+  width: 220px;
+}
+
+.col-programs {
+  width: 140px;
+}
+
+.col-notes {
+  width: 220px;
+}
+
+.col-action {
+  width: 100px;
+}
+
+.ats-table td:nth-child(4),
+.ats-table td:nth-child(5),
+.ats-table td:nth-child(6),
+.ats-table td:nth-child(7),
+.ats-table th:nth-child(4),
+.ats-table th:nth-child(5),
+.ats-table th:nth-child(6),
+.ats-table th:nth-child(7) {
+  text-align: center;
+}
+
+.ats-table td:nth-child(4) input,
+.ats-table td:nth-child(5) input,
+.ats-table td:nth-child(6) input,
+.ats-table td:nth-child(7) input {
+  text-align: center;
+}
+
+.totals-row td {
+  vertical-align: middle;
+  background: rgba(93, 139, 255, 0.06);
+}
+
+.totals-label {
+  font-weight: 700;
+  color: #dfe7ff;
+}
+
+.total-box {
+  min-height: 42px;
+  border: 1px solid #243250;
+  background: #0b1530;
+  color: #edf2ff;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
 @media (max-width: 1180px) {
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
