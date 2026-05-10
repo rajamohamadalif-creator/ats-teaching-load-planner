@@ -406,6 +406,7 @@ function App() {
 const [isAtsEditMode, setIsAtsEditMode] = useState(false);
 
   const [settingsSection, setSettingsSection] = useState("users");
+  const [servicingSection, setServicingSection] = useState("diploma");
   const [userRoleFilter, setUserRoleFilter] = useState("coordinator");
   const [newUserDraft, setNewUserDraft] = useState(createBlankUser("coordinator"));
 
@@ -433,7 +434,7 @@ const canEditAtsEntries = currentRole === "developer" || currentRole === "admin"
   }, [lecturers, selectedDepartment, lecturerQuery]);
 
   const selectedLecturer =
-  lecturers.find((lecturer) => lecturer.id === selectedLecturerId) ?? null;
+   lecturers.find((lecturer) => lecturer.id === selectedLecturerId) ?? null;
 
   const lecturerSuggestions = useMemo(() => {
     return filteredLecturers.slice(0, 8);
@@ -512,7 +513,67 @@ const canEditAtsEntries = currentRole === "developer" || currentRole === "admin"
     setScreen("dashboard");
     resetLoginFields();
   }
+function renderMainContent() {
+  if (screen === "groupInfo") {
+    return (
+      <section className="page-grid">
+        <div className="panel panel-wide">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Academic admin</p>
+              <h3>Group Info</h3>
+            </div>
+          </div>
 
+          <div className="empty-state-box">
+            Group Info page added. Next step: choose a department and manage group names plus student counts for the current semester.
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (screen === "servicingCodes") {
+    return (
+      <section className="page-grid">
+        <div className="panel panel-wide">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Placeholder module</p>
+              <h3>Servicing Codes</h3>
+            </div>
+          </div>
+
+          <div className="tab-row secondary">
+            <button
+              type="button"
+              className={servicingSection === "diploma" ? "tab-button active" : "tab-button"}
+              onClick={() => setServicingSection("diploma")}
+            >
+              Diploma Servicing Codes
+            </button>
+
+            <button
+              type="button"
+              className={servicingSection === "degree" ? "tab-button active" : "tab-button"}
+              onClick={() => setServicingSection("degree")}
+            >
+              Degree Servicing Codes
+            </button>
+          </div>
+
+          <div className="empty-state-box">
+            {servicingSection === "diploma"
+              ? "Diploma Servicing Codes section added. Functionality will be added later."
+              : "Degree Servicing Codes section added. Functionality will be added later."}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return null;
+}
   function handleLogout() {
   setCurrentUser(null);
   setScreen("login");
@@ -522,6 +583,7 @@ const canEditAtsEntries = currentRole === "developer" || currentRole === "admin"
   setSettingsSection("users");
   setEditingLecturerId(null);
   setIsAtsEditMode(false);
+  setServicingSection("diploma");
 }
 
   function openLecturer(lecturerId) {
@@ -792,23 +854,58 @@ function handleCancelAtsChanges() {
     </div>
   </div>
 
-  <nav className="sidebar-nav">
-    <button
-      className={screen === "dashboard" ? "nav-link active" : "nav-link"}
-      onClick={() => setScreen("dashboard")}
-    >
-      Dashboard
-    </button>
+<nav className="sidebar-nav">
+  <button
+    className={screen === "dashboard" ? "nav-link active" : "nav-link"}
+    onClick={() => setScreen("dashboard")}
+  >
+    Dashboard
+  </button>
 
-    {selectedLecturer ? (
-      <button
-        className={screen === "lecturer" ? "nav-link active" : "nav-link"}
-        onClick={() => openLecturer(selectedLecturer.id)}
-      >
-        Lecturer ATS
-      </button>
-    ) : null}
-  </nav>
+  {selectedLecturer ? (
+    <button
+      className={screen === "lecturer" ? "nav-link active" : "nav-link"}
+      onClick={() => openLecturer(selectedLecturer.id)}
+    >
+      Lecturer ATS
+    </button>
+  ) : null}
+
+  <button
+    className={screen === "mufCodes" ? "nav-link active" : "nav-link"}
+    onClick={() => setScreen("mufCodes")}
+  >
+    MUF Codes
+  </button>
+
+  <button
+    className={screen === "performingGroups" ? "nav-link active" : "nav-link"}
+    onClick={() => setScreen("performingGroups")}
+  >
+    Performing Groups
+  </button>
+
+<button
+  className={screen === "groupInfo" ? "nav-link active" : "nav-link"}
+  onClick={() => setScreen("groupInfo")}
+>
+  Group Info
+</button>
+
+  <button
+    className={screen === "servicingCodes" ? "nav-link active" : "nav-link"}
+    onClick={() => setScreen("servicingCodes")}
+  >
+    Servicing Codes
+  </button>
+
+  <button
+    className={screen === "forumColloquim" ? "nav-link active" : "nav-link"}
+    onClick={() => setScreen("forumColloquim")}
+  >
+    Forum/Colloquim
+  </button>
+</nav>
 </aside>
 
       <main className="main-panel">
@@ -822,12 +919,24 @@ function handleCancelAtsChanges() {
                 : "Settings"}
             </p>
             <h1>
-              {screen === "dashboard"
-                ? "Faculty ATS Overview"
-                : screen === "lecturer"
-                ? selectedLecturer?.name || "Lecturer ATS"
-                : "Settings"}
-            </h1>
+  {screen === "dashboard"
+    ? "Faculty ATS Overview"
+    : screen === "lecturer"
+    ? selectedLecturer?.name
+    : screen === "settings"
+    ? "Settings"
+    : screen === "mufCodes"
+    ? "MUF Codes"
+    : screen === "performingGroups"
+    ? "Performing Groups"
+    : screen === "groupInfo"
+    ? "Group Info"
+    : screen === "servicingCodes"
+    ? "Servicing Codes"
+    : screen === "forumColloquim"
+    ? "Forum/Colloquim"
+    : "Faculty ATS Overview"}
+</h1>
           </div>
 
           <div className="topbar-actions topbar-actions-right">
@@ -862,6 +971,8 @@ function handleCancelAtsChanges() {
 </div>
 
         </header>
+        
+{renderMainContent()}
 
         {screen === "dashboard" ? (
           <section className="page-grid">
@@ -873,53 +984,50 @@ function handleCancelAtsChanges() {
       </div>
     </div>
 
-    <div className="form-grid">
-      <label className="field">
-        <span>Department</span>
-        <select
-          value={selectedDepartment}
-          onChange={(e) => setSelectedDepartment(e.target.value)}
-        >
-          <option>All Departments</option>
-          {DEPARTMENTS.map((department) => (
-            <option key={department} value={department}>
-              {department}
-            </option>
-          ))}
-        </select>
-      </label>
+<div className="form-grid lecturer-picker-grid">
+  <label className="field">
+    <span>Department</span>
+    <select
+      value={selectedDepartment}
+      onChange={(e) => {
+        setSelectedDepartment(e.target.value);
+        setSelectedLecturerId(null);
+      }}
+    >
+      <option>All Departments</option>
+      {DEPARTMENTS.map((department) => (
+        <option key={department} value={department}>
+          {department}
+        </option>
+      ))}
+    </select>
+  </label>
 
-      <label className="field">
-        <span>Lecturer search</span>
-        <input
-          type="text"
-          list="lecturer-suggestions"
-          value={lecturerQuery}
-          onChange={(e) => setLecturerQuery(e.target.value)}
-          placeholder="Type lecturer name"
-        />
-        <datalist id="lecturer-suggestions">
-          {lecturerSuggestions.map((lecturer) => (
-            <option key={lecturer.id} value={lecturer.name} />
-          ))}
-        </datalist>
-      </label>
+  <label className="field lecturer-search-field">
+    <span>Lecturer</span>
+    <input
+      type="text"
+      list="lecturer-suggestions"
+      value={lecturerQuery}
+      onChange={(e) => {
+        const value = e.target.value;
+        setLecturerQuery(value);
 
-      <label className="field">
-        <span>Lecturer dropdown</span>
-        <select
-          value={selectedLecturerId ?? ""}
-          onChange={(e) => setSelectedLecturerId(e.target.value || null)}
-        >
-          <option value="">Select lecturer</option>
-          {filteredLecturers.map((lecturer) => (
-            <option key={lecturer.id} value={lecturer.id}>
-              {lecturer.name}
-            </option>
-          ))}
-        </select>
-      </label>
-    </div>
+        const matchedLecturer = filteredLecturers.find(
+          (lecturer) => lecturer.name.toLowerCase() === value.toLowerCase()
+        );
+
+        setSelectedLecturerId(matchedLecturer ? matchedLecturer.id : null);
+      }}
+      placeholder="Search or select lecturer"
+    />
+    <datalist id="lecturer-suggestions">
+      {filteredLecturers.map((lecturer) => (
+        <option key={lecturer.id} value={lecturer.name} />
+      ))}
+    </datalist>
+  </label>
+</div>
 
     <div className="action-row">
       <button
@@ -1327,7 +1435,53 @@ function handleCancelAtsChanges() {
                     </button>
                   </div>
                 ) : null}
+{screen === "mufCodes" ? (
+  <section className="page-grid">
+    <div className="panel panel-wide">
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">Placeholder module</p>
+          <h3>MUF Codes</h3>
+        </div>
+      </div>
+      <div className="empty-state-box">
+        MUF Codes page added. Functionality will be added later.
+      </div>
+    </div>
+  </section>
+) : null}
 
+{screen === "performingGroups" ? (
+  <section className="page-grid">
+    <div className="panel panel-wide">
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">Placeholder module</p>
+          <h3>Performing Groups</h3>
+        </div>
+      </div>
+      <div className="empty-state-box">
+        Performing Groups page added. Functionality will be added later.
+      </div>
+    </div>
+  </section>
+) : null}
+
+{screen === "forumColloquim" ? (
+  <section className="page-grid">
+    <div className="panel panel-wide">
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">Placeholder module</p>
+          <h3>Forum/Colloquim</h3>
+        </div>
+      </div>
+      <div className="empty-state-box">
+        Forum/Colloquim page added. Functionality will be added later.
+      </div>
+    </div>
+  </section>
+) : null}
                 <div className="table-wrap">
                   <table>
                     <thead>
