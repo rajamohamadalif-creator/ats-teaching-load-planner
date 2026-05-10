@@ -14,6 +14,52 @@ const DEPARTMENTS = [
   "MU950 PhD in Music (By Research)",
 ];
 
+const PROGRAM_CODES = [
+  "MU110",
+  "MU111",
+  "MU220/MU230",
+  "MU221",
+  "MU222",
+  "MU223",
+  "MU750",
+  "MU778",
+  "MU790",
+  "MU950",
+];
+
+const INITIAL_GROUPS = [
+  {
+    id: "group-1",
+    department: "MU221",
+    groupName: "MU221SEM1N",
+    studentCount: 12,
+  },
+  {
+    id: "group-2",
+    department: "MU221",
+    groupName: "MU221SEM2",
+    studentCount: 10,
+  },
+  {
+    id: "group-3",
+    department: "MU222",
+    groupName: "MU222SEM3",
+    studentCount: 8,
+  },
+  {
+    id: "group-4",
+    department: "MU220/MU230",
+    groupName: "MU230SEM6",
+    studentCount: 9,
+  },
+  {
+    id: "group-5",
+    department: "MU110",
+    groupName: "MU110SEM1",
+    studentCount: 15,
+  },
+];
+
 const INITIAL_USERS = {
   admin: [
     { id: "admin-1", username: "admin1", password: "111" },
@@ -406,6 +452,10 @@ function App() {
 const [isAtsEditMode, setIsAtsEditMode] = useState(false);
 
   const [settingsSection, setSettingsSection] = useState("users");
+  const [groups, setGroups] = useState(INITIAL_GROUPS);
+  const [selectedGroupDepartment, setSelectedGroupDepartment] = useState(PROGRAM_CODES[0] ?? "");
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupStudentCount, setNewGroupStudentCount] = useState("");
   const [servicingSection, setServicingSection] = useState("diploma");
   const [userRoleFilter, setUserRoleFilter] = useState("coordinator");
   const [newUserDraft, setNewUserDraft] = useState(createBlankUser("coordinator"));
@@ -435,7 +485,9 @@ const canEditAtsEntries = currentRole === "developer" || currentRole === "admin"
 
   const selectedLecturer =
    lecturers.find((lecturer) => lecturer.id === selectedLecturerId) ?? null;
-
+  const filteredGroups = groups.filter(
+  (group) => group.department === selectedGroupDepartment
+  );
   const lecturerSuggestions = useMemo(() => {
     return filteredLecturers.slice(0, 8);
   }, [filteredLecturers]);
@@ -515,23 +567,105 @@ const canEditAtsEntries = currentRole === "developer" || currentRole === "admin"
   }
 function renderMainContent() {
   if (screen === "groupInfo") {
-    return (
-      <section className="page-grid">
-        <div className="panel panel-wide">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Academic admin</p>
-              <h3>Group Info</h3>
-            </div>
-          </div>
-
-          <div className="empty-state-box">
-            Group Info page added. Next step: choose a department and manage group names plus student counts for the current semester.
+  return (
+    <section className="page-grid">
+      <div className="panel panel-wide">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Academic admin</p>
+            <h3>Group Info</h3>
+            <p className="muted-copy">
+              Manage group codes by program and track the number of students in each group.
+            </p>
           </div>
         </div>
-      </section>
-    );
-  }
+
+        <div className="form-grid three-cols">
+          <label className="field">
+            <span>Program Code</span>
+            <select
+              value={selectedGroupDepartment}
+              onChange={(e) => setSelectedGroupDepartment(e.target.value)}
+            >
+              {PROGRAM_CODES.map((programCode) => (
+                <option key={programCode} value={programCode}>
+                  {programCode}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>Group Code</span>
+            <input
+              type="text"
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              placeholder="Example: MU221SEM1N"
+            />
+          </label>
+
+          <label className="field">
+            <span>Student Count</span>
+            <input
+              type="number"
+              min="0"
+              value={newGroupStudentCount}
+              onChange={(e) => setNewGroupStudentCount(e.target.value)}
+              placeholder="0"
+            />
+          </label>
+        </div>
+
+        <div className="action-row">
+          <button type="button" className="primary-button" onClick={handleAddGroup}>
+            Add Group
+          </button>
+        </div>
+
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Program Code</th>
+                <th>Group Code</th>
+                <th>Student Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredGroups.length > 0 ? (
+                filteredGroups.map((group) => (
+                  <tr key={group.id}>
+                    <td>{group.department}</td>
+                    <td>{group.groupName}</td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        value={group.studentCount}
+                        onChange={(e) =>
+                          handleUpdateGroupStudentCount(group.id, e.target.value)
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="3">
+                    <div className="empty-state-box">
+                      No groups added for this program code yet.
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
 
   if (screen === "servicingCodes") {
     return (
@@ -574,6 +708,34 @@ function renderMainContent() {
 
   return null;
 }
+
+function handleAddGroup() {
+  if (!selectedGroupDepartment || !newGroupName.trim()) return;
+
+  setGroups((current) => [
+    ...current,
+    {
+      id: `group-${Date.now()}`,
+      department: selectedGroupDepartment,
+      groupName: newGroupName.trim(),
+      studentCount: Number(newGroupStudentCount) || 0,
+    },
+  ]);
+
+  setNewGroupName("");
+  setNewGroupStudentCount("");
+}
+
+function handleUpdateGroupStudentCount(groupId, value) {
+  setGroups((current) =>
+    current.map((group) =>
+      group.id === groupId
+        ? { ...group, studentCount: Number(value) || 0 }
+        : group
+    )
+  );
+}
+
   function handleLogout() {
   setCurrentUser(null);
   setScreen("login");
