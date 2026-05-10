@@ -469,6 +469,69 @@ table textarea {
   gap: 1rem;
 }
 
+.ats-panel .panel-heading {
+  margin-bottom: 1.2rem;
+}
+
+.ats-panel .panel-heading > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ats-panel .panel-heading .eyebrow {
+  margin-bottom: 0;
+}
+
+.ats-panel .panel-heading h3 {
+  margin-top: 0;
+}
+
+.ats-toolbar {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.ats-toolbar .secondary-button,
+.ats-toolbar .ghost-button {
+  min-width: 118px;
+  justify-content: center;
+}
+
+.ats-toolbar .secondary-button {
+  background: #12b981;
+  color: #06111f;
+  border: 1px solid #12b981;
+  box-shadow: 0 8px 20px rgba(18, 185, 129, 0.2);
+}
+
+.ats-toolbar .secondary-button:hover {
+  background: #20d598;
+  border-color: #20d598;
+  box-shadow: 0 10px 24px rgba(18, 185, 129, 0.28);
+}
+
+.ats-toolbar .ghost-button {
+  background: #5d8bff;
+  color: #ffffff;
+  border: 1px solid #5d8bff;
+  box-shadow: 0 8px 20px rgba(93, 139, 255, 0.22);
+}
+
+.ats-toolbar .ghost-button:hover {
+  background: #749cff;
+  border-color: #749cff;
+  box-shadow: 0 10px 24px rgba(93, 139, 255, 0.28);
+}
+
+.ats-toolbar .ghost-button.active {
+  background: #f59e0b;
+  color: #06111f;
+  border-color: #f59e0b;
+  box-shadow: 0 10px 24px rgba(245, 158, 11, 0.28);
+}
+
 .form-grid {
   display: grid;
   gap: 1rem;
@@ -741,6 +804,111 @@ th {
   min-width: 360px;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(2, 6, 18, 0.82);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+.modal-card {
+  width: min(96vw, 1560px);
+  height: min(82vh, 980px);
+  max-width: 1560px;
+  max-height: 82vh;
+  overflow: auto;
+  border-radius: 32px;
+  border: 1px solid rgba(132, 170, 255, 0.38);
+  background: rgba(13, 22, 46, 0.985);
+  box-shadow:
+    0 32px 100px rgba(0, 0, 0, 0.58),
+    0 0 0 1px rgba(160, 190, 255, 0.08) inset;
+  padding: 1.6rem;
+}
+
+.ats-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ats-modal .panel-heading {
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid rgba(132, 170, 255, 0.16);
+}
+
+.ats-modal .form-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.ats-modal .field {
+  padding: 0.9rem;
+  border-radius: 20px;
+  border: 1px solid rgba(117, 140, 197, 0.16);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.ats-modal input,
+.ats-modal textarea,
+.ats-modal select {
+  background: #101a36;
+  border: 1px solid rgba(132, 170, 255, 0.22);
+}
+
+.ats-modal input:focus,
+.ats-modal textarea:focus,
+.ats-modal select:focus {
+  border-color: #78a8ff;
+  box-shadow: 0 0 0 4px rgba(120, 168, 255, 0.16);
+}
+
+.ats-modal textarea {
+  min-height: 170px;
+}
+
+.ats-modal .secondary-button {
+  background: linear-gradient(135deg, #78a8ff, #5d8bff);
+  color: #06101f;
+  border: 1px solid rgba(120, 168, 255, 0.65);
+  box-shadow: 0 12px 28px rgba(93, 139, 255, 0.28);
+  font-weight: 700;
+}
+
+.ats-modal .secondary-button:hover {
+  background: linear-gradient(135deg, #8ab4ff, #729bff);
+  border-color: rgba(138, 180, 255, 0.8);
+}
+
+.ats-modal .ghost-button {
+  background: rgba(29, 43, 79, 0.92);
+  border: 1px solid rgba(132, 170, 255, 0.22);
+}
+
+@media (max-width: 920px) {
+  .modal-backdrop {
+    padding: 0.5rem;
+    align-items: stretch;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-height: 100%;
+    border-radius: 24px;
+    padding: 1rem;
+  }
+
+  .ats-modal .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
 .ats-panel {
   background: rgba(16, 28, 58, 0.95);
 }
@@ -786,6 +954,13 @@ th {
   width: 140px;
 }
 
+.col-contact-hours {
+  width: 110px;
+}
+
+.col-group {
+  width: 130px;
+}
 .col-notes {
   width: 220px;
 }

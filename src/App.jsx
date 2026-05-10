@@ -2,16 +2,16 @@ import { useMemo, useState } from "react";
 import "./App.css";
 
 const DEPARTMENTS = [
-  "MU110 Diploma in Music",
-  "MU111 Diploma in Digital Audio Production",
-  "MU220/MU230 Bachelor in Music Education",
-  "MU221 Bachelor in Music Composition",
-  "MU222 Bachelor in Music Performance",
-  "MU223 Bachelor in Music Business",
-  "MU750 Master of Music (By Research)",
-  "MU778 Master of Music Education (By Coursework)",
-  "MU790 Master of Music Performance",
-  "MU950 PhD in Music (By Research)",
+  "MU110",
+  "MU111",
+  "MU220/MU230",
+  "MU221",
+  "MU222",
+  "MU223",
+  "MU750",
+  "MU778",
+  "MU790",
+  "MU950",
 ];
 
 const PROGRAM_CODES = [
@@ -83,8 +83,8 @@ const INITIAL_LECTURERS = [
     id: "lec-1",
     name: "Dr. Aisyah Rahman",
     departments: [
-      "MU221 Bachelor in Music Composition",
-      "MU110 Diploma in Music",
+      "MU221",
+      "MU110",
     ],
     minATS: 16,
     maxATS: 18,
@@ -95,7 +95,7 @@ const INITIAL_LECTURERS = [
         id: "ats-1",
         courseCodes: ["MUC2213"],
         courseNames: ["Composition Techniques I"],
-        programs: ["MU221 Bachelor in Music Composition"],
+        programs: ["MU221"],
         ks: 4,
         k1Supervision: 1,
         k2Research: 2,
@@ -106,7 +106,7 @@ const INITIAL_LECTURERS = [
         id: "ats-2",
         courseCodes: ["MUA1102", "MUA1103"],
         courseNames: ["Aural Skills", "Music Theory Basics"],
-        programs: ["MU110 Diploma in Music"],
+        programs: ["MU110"],
         ks: 5,
         k1Supervision: 0,
         k2Research: 1,
@@ -118,7 +118,7 @@ const INITIAL_LECTURERS = [
   {
     id: "lec-2",
     name: "Prof. Siti Mariam",
-    departments: ["MU220/MU230 Bachelor in Music Education"],
+    departments: ["MU220/MU230"],
     minATS: 16,
     maxATS: 18,
     position: "Dean",
@@ -128,7 +128,7 @@ const INITIAL_LECTURERS = [
         id: "ats-3",
         courseCodes: ["MUE2304"],
         courseNames: ["Curriculum Design for Music Educators"],
-        programs: ["MU220/MU230 Bachelor in Music Education"],
+        programs: ["MU220/MU230"],
         ks: 3,
         k1Supervision: 1,
         k2Research: 3,
@@ -141,8 +141,8 @@ const INITIAL_LECTURERS = [
     id: "lec-3",
     name: "Mr. Daniel Chong",
     departments: [
-      "MU222 Bachelor in Music Performance",
-      "MU790 Master of Music Performance",
+      "MU222",
+      "MU790",
     ],
     minATS: 16,
     maxATS: 18,
@@ -153,7 +153,7 @@ const INITIAL_LECTURERS = [
         id: "ats-4",
         courseCodes: ["MUP2221"],
         courseNames: ["Principal Study Piano"],
-        programs: ["MU222 Bachelor in Music Performance"],
+        programs: ["MU222"],
         ks: 6,
         k1Supervision: 2,
         k2Research: 0,
@@ -164,7 +164,7 @@ const INITIAL_LECTURERS = [
         id: "ats-5",
         courseCodes: ["MUP7902"],
         courseNames: ["Advanced Performance Seminar"],
-        programs: ["MU790 Master of Music Performance"],
+        programs: ["MU790"],
         ks: 4,
         k1Supervision: 1,
         k2Research: 1,
@@ -177,8 +177,8 @@ const INITIAL_LECTURERS = [
     id: "lec-4",
     name: "Dr. Farid Hakim",
     departments: [
-      "MU111 Diploma in Digital Audio Production",
-      "MU223 Bachelor in Music Business",
+      "MU111",
+      "MU223",
     ],
     minATS: 16,
     maxATS: 18,
@@ -189,7 +189,7 @@ const INITIAL_LECTURERS = [
         id: "ats-6",
         courseCodes: ["MUD1114"],
         courseNames: ["Digital Audio Workstations"],
-        programs: ["MU111 Diploma in Digital Audio Production"],
+        programs: ["MU111"],
         ks: 4,
         k1Supervision: 1,
         k2Research: 1,
@@ -200,7 +200,7 @@ const INITIAL_LECTURERS = [
         id: "ats-7",
         courseCodes: ["MUB2232"],
         courseNames: ["Music Entrepreneurship"],
-        programs: ["MU223 Bachelor in Music Business"],
+        programs: ["MU223"],
         ks: 3,
         k1Supervision: 0,
         k2Research: 1,
@@ -213,8 +213,8 @@ const INITIAL_LECTURERS = [
     id: "lec-5",
     name: "Dr. Nur Syafiqah",
     departments: [
-      "MU750 Master of Music (By Research)",
-      "MU950 PhD in Music (By Research)",
+      "MU750",
+      "MU950",
     ],
     minATS: 16,
     maxATS: 18,
@@ -225,7 +225,7 @@ const INITIAL_LECTURERS = [
         id: "ats-8",
         courseCodes: ["MUR7501"],
         courseNames: ["Research Colloquium"],
-        programs: ["MU750 Master of Music (By Research)"],
+        programs: ["MU750"],
         ks: 2,
         k1Supervision: 4,
         k2Research: 3,
@@ -236,7 +236,7 @@ const INITIAL_LECTURERS = [
         id: "ats-9",
         courseCodes: ["MUR9501"],
         courseNames: ["Doctoral Research Seminar"],
-        programs: ["MU950 PhD in Music (By Research)"],
+        programs: ["MU950"],
         ks: 2,
         k1Supervision: 4,
         k2Research: 4,
@@ -249,8 +249,8 @@ const INITIAL_LECTURERS = [
     id: "lec-6",
     name: "Ms. Hannah Lee",
     departments: [
-      "MU110 Diploma in Music",
-      "MU222 Bachelor in Music Performance",
+      "MU110",
+      "MU222",
     ],
     minATS: 16,
     maxATS: 18,
@@ -261,7 +261,7 @@ const INITIAL_LECTURERS = [
         id: "ats-10",
         courseCodes: ["MUV1102"],
         courseNames: ["Class Voice"],
-        programs: ["MU110 Diploma in Music"],
+        programs: ["MU110"],
         ks: 5,
         k1Supervision: 0,
         k2Research: 0,
@@ -272,7 +272,7 @@ const INITIAL_LECTURERS = [
         id: "ats-11",
         courseCodes: ["MUV2223"],
         courseNames: ["Vocal Repertoire Studies"],
-        programs: ["MU222 Bachelor in Music Performance"],
+        programs: ["MU222"],
         ks: 5,
         k1Supervision: 1,
         k2Research: 0,
@@ -285,8 +285,8 @@ const INITIAL_LECTURERS = [
     id: "lec-7",
     name: "Mr. Adam Firdaus",
     departments: [
-      "MU111 Diploma in Digital Audio Production",
-      "MU221 Bachelor in Music Composition",
+      "MU111",
+      "MU221",
     ],
     minATS: 16,
     maxATS: 18,
@@ -297,7 +297,7 @@ const INITIAL_LECTURERS = [
         id: "ats-12",
         courseCodes: ["MUE2215"],
         courseNames: ["Electroacoustic Composition"],
-        programs: ["MU221 Bachelor in Music Composition"],
+        programs: ["MU221"],
         ks: 4,
         k1Supervision: 1,
         k2Research: 1,
@@ -308,7 +308,7 @@ const INITIAL_LECTURERS = [
         id: "ats-13",
         courseCodes: ["MUD1115"],
         courseNames: ["Sound Design Fundamentals"],
-        programs: ["MU111 Diploma in Digital Audio Production"],
+        programs: ["MU111"],
         ks: 4,
         k1Supervision: 0,
         k2Research: 1,
@@ -321,8 +321,8 @@ const INITIAL_LECTURERS = [
     id: "lec-8",
     name: "Dr. Priya Nair",
     departments: [
-      "MU778 Master of Music Education (By Coursework)",
-      "MU220/MU230 Bachelor in Music Education",
+      "MU778",
+      "MU220/MU230",
     ],
     minATS: 16,
     maxATS: 18,
@@ -333,7 +333,7 @@ const INITIAL_LECTURERS = [
         id: "ats-14",
         courseCodes: ["MUE7782"],
         courseNames: ["Contemporary Issues in Music Education"],
-        programs: ["MU778 Master of Music Education (By Coursework)"],
+        programs: ["MU778"],
         ks: 3,
         k1Supervision: 2,
         k2Research: 1,
@@ -344,7 +344,7 @@ const INITIAL_LECTURERS = [
         id: "ats-15",
         courseCodes: ["MUE2302"],
         courseNames: ["Assessment in Music Teaching"],
-        programs: ["MU220/MU230 Bachelor in Music Education"],
+        programs: ["MU220/MU230"],
         ks: 3,
         k1Supervision: 1,
         k2Research: 1,
@@ -406,6 +406,7 @@ function createBlankAtsEntry() {
     courseCodes: [""],
     courseNames: [""],
     programs: [""],
+    groups: [],
     ks: 0,
     k1Supervision: 0,
     k2Research: 0,
@@ -449,13 +450,37 @@ function App() {
   const [selectedDepartment, setSelectedDepartment] = useState("All Departments");
   const [lecturerQuery, setLecturerQuery] = useState("");
   const [selectedLecturerId, setSelectedLecturerId] = useState(null);
-const [isAtsEditMode, setIsAtsEditMode] = useState(false);
 
   const [settingsSection, setSettingsSection] = useState("users");
   const [groups, setGroups] = useState(INITIAL_GROUPS);
   const [selectedGroupDepartment, setSelectedGroupDepartment] = useState(PROGRAM_CODES[0] ?? "");
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupStudentCount, setNewGroupStudentCount] = useState("");
+  const [isAtsEditMode, setIsAtsEditMode] = useState(false);
+  const [isAddAtsModalOpen, setIsAddAtsModalOpen] = useState(false);
+  const [newAtsDraft, setNewAtsDraft] = useState(createBlankAtsEntry());
+  const atsSuggestionPool = useMemo(() => {
+  const entries = lecturers.flatMap((lecturer) => lecturer.atsEntries || []);
+
+  const unique = (values) =>
+    Array.from(
+      new Set(
+        values
+          .map((value) => (value ?? "").toString().trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b));
+
+  return {
+    courseCodes: unique(entries.map((entry) => entry.courseCodes)),
+    courseNames: unique(entries.map((entry) => entry.courseNames)),
+    programs: unique(entries.map((entry) => entry.programs)),
+    groups: unique(entries.map((entry) => entry.group)),
+  };
+}, [lecturers]);
+  const [isAtsModalOpen, setIsAtsModalOpen] = useState(false);
+  const [editingAtsEntryId, setEditingAtsEntryId] = useState(null);
+  const [atsDraft, setAtsDraft] = useState(createBlankAtsEntry());
   const [servicingSection, setServicingSection] = useState("diploma");
   const [userRoleFilter, setUserRoleFilter] = useState("coordinator");
   const [newUserDraft, setNewUserDraft] = useState(createBlankUser("coordinator"));
@@ -736,6 +761,48 @@ function handleUpdateGroupStudentCount(groupId, value) {
   );
 }
 
+function openAddAtsModal() {
+  setEditingAtsEntryId(null);
+  setAtsDraft(createBlankAtsEntry());
+  setIsAtsModalOpen(true);
+}
+
+function openEditAtsModal(entry) {
+  setEditingAtsEntryId(entry.id);
+  setAtsDraft({
+    ...entry,
+    courseCodes: [...(entry.courseCodes ?? [""])],
+    courseNames: [...(entry.courseNames ?? [""])],
+    programs: [...(entry.programs ?? [""])],
+    groups: [...(entry.groups ?? [])],
+    notes: entry.notes ?? "",
+  });
+  setIsAtsModalOpen(true);
+}
+
+function closeAtsModal() {
+  setIsAtsModalOpen(false);
+  setEditingAtsEntryId(null);
+  setAtsDraft(createBlankAtsEntry());
+}
+
+function updateAtsDraftField(field, value) {
+  setAtsDraft((current) => ({
+    ...current,
+    [field]: value,
+  }));
+}
+
+function updateAtsDraftListField(field, value) {
+  setAtsDraft((current) => ({
+    ...current,
+    [field]: value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean),
+  }));
+}
+
   function handleLogout() {
   setCurrentUser(null);
   setScreen("login");
@@ -745,6 +812,8 @@ function handleUpdateGroupStudentCount(groupId, value) {
   setSettingsSection("users");
   setEditingLecturerId(null);
   setIsAtsEditMode(false);
+  setIsAddAtsModalOpen(false);
+  setNewAtsDraft(createBlankAtsEntry());
   setServicingSection("diploma");
 }
 
@@ -752,6 +821,8 @@ function handleUpdateGroupStudentCount(groupId, value) {
   setSelectedLecturerId(lecturerId);
   setScreen("lecturer");
   setIsAtsEditMode(false);
+  setIsAddAtsModalOpen(false);
+  setNewAtsDraft(createBlankAtsEntry());
 }
 function handleStartEditAts() {
   if (!selectedLecturer || !canEditAtsEntries) return;
@@ -821,6 +892,58 @@ function handleCancelAtsChanges() {
       )
     );
   }
+
+function openAddAtsModal() {
+  if (!selectedLecturer || !canEditAtsEntries) return;
+  setNewAtsDraft(createBlankAtsEntry());
+  setIsAddAtsModalOpen(true);
+}
+
+function closeAddAtsModal() {
+  setIsAddAtsModalOpen(false);
+  setNewAtsDraft(createBlankAtsEntry());
+}
+
+function updateNewAtsDraft(field, value) {
+  setNewAtsDraft((prev) => ({
+    ...prev,
+    [field]: value,
+  }));
+}
+
+function updateNewAtsDraftList(field, value) {
+  const items = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  setNewAtsDraft((prev) => ({
+    ...prev,
+    [field]: items,
+  }));
+}
+
+function submitNewAtsEntry() {
+  if (!selectedLecturer || !canEditAtsEntries) return;
+
+  const hasCourseCode = newAtsDraft.courseCodes.length > 0;
+  const hasCourseName = newAtsDraft.courseNames.length > 0;
+
+  if (!hasCourseCode && !hasCourseName) return;
+
+  setLecturers((prev) =>
+    prev.map((lecturer) =>
+      lecturer.id === selectedLecturer.id
+        ? {
+            ...lecturer,
+            atsEntries: [...lecturer.atsEntries, newAtsDraft],
+          }
+        : lecturer
+    )
+  );
+
+  closeAddAtsModal();
+}
 
   function removeAtsRow(lecturerId, entryId) {
     setLecturers((prev) =>
@@ -1356,6 +1479,24 @@ function handleCancelAtsChanges() {
           <p className="eyebrow">ATS workload table</p>
           <h3>Lecturer ATS entries</h3>
         </div>
+
+        <div className="ats-toolbar">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={openAddAtsModal}
+          >
+            Add New
+          </button>
+
+          <button
+            type="button"
+            className={isAtsEditMode ? "ghost-button active" : "ghost-button"}
+            onClick={() => setIsAtsEditMode((prev) => !prev)}
+          >
+            {isAtsEditMode ? "Done Editing" : "Edit"}
+          </button>
+        </div>
       </div>
 
       <div className="table-wrap">
@@ -1365,12 +1506,16 @@ function handleCancelAtsChanges() {
               <th className="col-course-code">Course code(s)</th>
               <th className="col-course-name">Course name(s)</th>
               <th className="col-programs">Program(s)</th>
+              <th className="col-group">Group(s)</th>
+              <th className="col-contact-hours">Contact Hours</th>
               <th className="col-small">KS</th>
               <th className="col-small">K1</th>
               <th className="col-small">K2</th>
               <th className="col-small">K3</th>
               <th className="col-notes">Notes</th>
-              {canEditAtsEntries ? <th className="col-action">Action</th> : null}
+              {canEditAtsEntries && isAtsEditMode ? (
+                <th className="col-action">Action</th>
+              ) : null}
             </tr>
           </thead>
 
@@ -1379,44 +1524,106 @@ function handleCancelAtsChanges() {
               <tr key={entry.id}>
                 <td>
                   <textarea
-                    value={entry.courseCodes.join(" / ")}
+                    value={(entry.courseCodes ?? []).join(", ")}
                     onChange={(e) =>
-                      updateAtsListField(selectedLecturer.id, entry.id, "courseCodes", e.target.value)
+                      updateAtsListField(
+                        selectedLecturer.id,
+                        entry.id,
+                        "courseCodes",
+                        e.target.value
+                      )
                     }
-                    disabled={!canEditAtsEntries}
+                    disabled={!(canEditAtsEntries && isAtsEditMode)}
                   />
                 </td>
+
                 <td>
                   <textarea
-                    value={entry.courseNames.join(" / ")}
+                    value={(entry.courseNames ?? []).join(", ")}
                     onChange={(e) =>
-                      updateAtsListField(selectedLecturer.id, entry.id, "courseNames", e.target.value)
+                      updateAtsListField(
+                        selectedLecturer.id,
+                        entry.id,
+                        "courseNames",
+                        e.target.value
+                      )
                     }
-                    disabled={!canEditAtsEntries}
+                    disabled={!(canEditAtsEntries && isAtsEditMode)}
                   />
                 </td>
+
                 <td>
                   <textarea
-                    value={entry.programs.map((program) => program.split(" ")[0]).join(" / ")}
+                    value={(entry.programs ?? []).join(", ")}
                     onChange={(e) =>
-                      updateAtsListField(selectedLecturer.id, entry.id, "programs", e.target.value)
+                      updateAtsListField(
+                        selectedLecturer.id,
+                        entry.id,
+                        "programs",
+                        e.target.value
+                      )
                     }
-                    disabled={!canEditAtsEntries}
+                    disabled={!(canEditAtsEntries && isAtsEditMode)}
                   />
                 </td>
+
+                <td>
+                  <textarea
+                    value={(entry.groups ?? []).join(", ")}
+                    onChange={(e) =>
+                      updateAtsListField(
+                        selectedLecturer.id,
+                        entry.id,
+                        "groups",
+                        e.target.value
+                      )
+                    }
+                    disabled={!(canEditAtsEntries && isAtsEditMode)}
+                    placeholder="Example: MU221SEM1N"
+                  />
+                </td>
+
                 <td>
                   <input
                     type="number"
+                    min="0"
+                    step="0.5"
+                    value={entry.contactHours ?? ""}
+                    onChange={(e) =>
+                      updateAtsEntry(
+                        selectedLecturer.id,
+                        entry.id,
+                        "contactHours",
+                        e.target.value
+                      )
+                    }
+                    disabled={!(canEditAtsEntries && isAtsEditMode)}
+                  />
+                </td>
+
+                <td>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
                     value={entry.ks}
                     onChange={(e) =>
-                      updateAtsEntry(selectedLecturer.id, entry.id, "ks", Number(e.target.value))
+                      updateAtsEntry(
+                        selectedLecturer.id,
+                        entry.id,
+                        "ks",
+                        Number(e.target.value)
+                      )
                     }
-                    disabled={!canEditAtsEntries}
+                    disabled={!(canEditAtsEntries && isAtsEditMode)}
                   />
                 </td>
+
                 <td>
                   <input
                     type="number"
+                    min="0"
+                    step="0.5"
                     value={entry.k1Supervision}
                     onChange={(e) =>
                       updateAtsEntry(
@@ -1426,12 +1633,15 @@ function handleCancelAtsChanges() {
                         Number(e.target.value)
                       )
                     }
-                    disabled={!canEditAtsEntries}
+                    disabled={!(canEditAtsEntries && isAtsEditMode)}
                   />
                 </td>
+
                 <td>
                   <input
                     type="number"
+                    min="0"
+                    step="0.5"
                     value={entry.k2Research}
                     onChange={(e) =>
                       updateAtsEntry(
@@ -1441,12 +1651,15 @@ function handleCancelAtsChanges() {
                         Number(e.target.value)
                       )
                     }
-                    disabled={!canEditAtsEntries}
+                    disabled={!(canEditAtsEntries && isAtsEditMode)}
                   />
                 </td>
+
                 <td>
                   <input
                     type="number"
+                    min="0"
+                    step="0.5"
                     value={entry.k3Service}
                     onChange={(e) =>
                       updateAtsEntry(
@@ -1456,19 +1669,26 @@ function handleCancelAtsChanges() {
                         Number(e.target.value)
                       )
                     }
-                    disabled={!canEditAtsEntries}
+                    disabled={!(canEditAtsEntries && isAtsEditMode)}
                   />
                 </td>
+
                 <td>
                   <textarea
-                    value={entry.notes}
+                    value={entry.notes ?? ""}
                     onChange={(e) =>
-                      updateAtsEntry(selectedLecturer.id, entry.id, "notes", e.target.value)
+                      updateAtsEntry(
+                        selectedLecturer.id,
+                        entry.id,
+                        "notes",
+                        e.target.value
+                      )
                     }
-                    disabled={!canEditAtsEntries}
+                    disabled={!(canEditAtsEntries && isAtsEditMode)}
                   />
                 </td>
-                {canEditAtsEntries ? (
+
+                {canEditAtsEntries && isAtsEditMode ? (
                   <td>
                     <button
                       className="danger-button compact"
@@ -1484,12 +1704,15 @@ function handleCancelAtsChanges() {
 
           <tfoot>
             <tr className="totals-row">
-              <td className="totals-label" colSpan={3}>
+              <td className="totals-label" colSpan={5}>
                 Totals
               </td>
               <td>
                 <div className="total-box">
-                  {selectedLecturer.atsEntries.reduce((sum, entry) => sum + Number(entry.ks || 0), 0)}
+                  {selectedLecturer.atsEntries.reduce(
+                    (sum, entry) => sum + Number(entry.ks || 0),
+                    0
+                  )}
                 </div>
               </td>
               <td>
@@ -1516,12 +1739,189 @@ function handleCancelAtsChanges() {
                   )}
                 </div>
               </td>
-              <td />
               {canEditAtsEntries ? <td /> : null}
             </tr>
           </tfoot>
         </table>
       </div>
+
+      {canEditAtsEntries && isAtsEditMode ? (
+        <div className="action-row">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => addAtsRow(selectedLecturer.id)}
+          >
+            Add ATS Row
+          </button>
+        </div>
+      ) : null}
+
+      {isAddAtsModalOpen ? (
+        <div className="modal-backdrop" onClick={closeAddAtsModal}>
+          <div
+            className="modal-card ats-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">New ATS entry</p>
+                <h3>Add lecturer ATS row</h3>
+              </div>
+
+              <button
+                type="button"
+                className="ghost-button compact"
+                onClick={closeAddAtsModal}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="form-grid three-cols">
+              <label className="field">
+                <span>Course code(s)</span>
+                <input
+                  type="text"
+                  value={(newAtsDraft.courseCodes ?? []).join(", ")}
+                  onChange={(e) =>
+                    updateNewAtsDraftList("courseCodes", e.target.value)
+                  }
+                  placeholder="e.g. MUC2213, MUC2214"
+                />
+              </label>
+
+              <label className="field">
+                <span>Course name(s)</span>
+                <input
+                  type="text"
+                  value={(newAtsDraft.courseNames ?? []).join(", ")}
+                  onChange={(e) =>
+                    updateNewAtsDraftList("courseNames", e.target.value)
+                  }
+                  placeholder="e.g. Composition Techniques I"
+                />
+              </label>
+
+              <label className="field">
+                <span>Program(s)</span>
+                <input
+                  type="text"
+                  value={(newAtsDraft.programs ?? []).join(", ")}
+                  onChange={(e) =>
+                    updateNewAtsDraftList("programs", e.target.value)
+                  }
+                  placeholder="e.g. MU221 Bachelor in Music Composition"
+                />
+              </label>
+
+              <label className="field">
+                <span>Group(s)</span>
+                <input
+                  type="text"
+                  value={(newAtsDraft.groups ?? []).join(", ")}
+                  onChange={(e) =>
+                    updateNewAtsDraftList("groups", e.target.value)
+                  }
+                  placeholder="e.g. MU221SEM1N"
+                />
+              </label>
+
+              <label className="field">
+                <span>Contact Hours</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={newAtsDraft.contactHours ?? ""}
+                  onChange={(e) =>
+                    updateNewAtsDraft("contactHours", e.target.value)
+                  }
+                  placeholder="e.g. 2"
+                />
+              </label>
+            </div>
+
+            <div className="form-grid">
+              <label className="field">
+                <span>KS</span>
+                <input
+                  type="number"
+                  value={newAtsDraft.ks}
+                  onChange={(e) =>
+                    updateNewAtsDraft("ks", Number(e.target.value))
+                  }
+                />
+              </label>
+
+              <label className="field">
+                <span>K1</span>
+                <input
+                  type="number"
+                  value={newAtsDraft.k1Supervision}
+                  onChange={(e) =>
+                    updateNewAtsDraft(
+                      "k1Supervision",
+                      Number(e.target.value)
+                    )
+                  }
+                />
+              </label>
+
+              <label className="field">
+                <span>K2</span>
+                <input
+                  type="number"
+                  value={newAtsDraft.k2Research}
+                  onChange={(e) =>
+                    updateNewAtsDraft("k2Research", Number(e.target.value))
+                  }
+                />
+              </label>
+
+              <label className="field">
+                <span>K3</span>
+                <input
+                  type="number"
+                  value={newAtsDraft.k3Service}
+                  onChange={(e) =>
+                    updateNewAtsDraft("k3Service", Number(e.target.value))
+                  }
+                />
+              </label>
+            </div>
+
+            <label className="field">
+              <span>Notes</span>
+              <textarea
+                value={newAtsDraft.notes}
+                onChange={(e) =>
+                  updateNewAtsDraft("notes", e.target.value)
+                }
+                placeholder="Optional notes"
+              />
+            </label>
+
+            <div className="action-row">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={closeAddAtsModal}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={submitNewAtsEntry}
+              >
+                Save ATS Entry
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   </section>
 ) : null}
