@@ -1,364 +1,15 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import "./App.css";
 
-const DEPARTMENTS = [
-  "MU110",
-  "MU111",
-  "MU220/MU230",
-  "MU221",
-  "MU222",
-  "MU223",
-  "MU750",
-  "MU778",
-  "MU790",
-  "MU950",
-];
-
-const PROGRAM_CODES = [
-  "MU110",
-  "MU111",
-  "MU220/MU230",
-  "MU221",
-  "MU222",
-  "MU223",
-  "MU750",
-  "MU778",
-  "MU790",
-  "MU950",
-];
-
-const INITIAL_GROUPS = [
-  {
-    id: "group-1",
-    department: "MU221",
-    groupName: "MU221SEM1N",
-    studentCount: 12,
-  },
-  {
-    id: "group-2",
-    department: "MU221",
-    groupName: "MU221SEM2",
-    studentCount: 10,
-  },
-  {
-    id: "group-3",
-    department: "MU222",
-    groupName: "MU222SEM3",
-    studentCount: 8,
-  },
-  {
-    id: "group-4",
-    department: "MU220/MU230",
-    groupName: "MU230SEM6",
-    studentCount: 9,
-  },
-  {
-    id: "group-5",
-    department: "MU110",
-    groupName: "MU110SEM1",
-    studentCount: 15,
-  },
-];
-
-const INITIAL_USERS = {
-  admin: [
-    { id: "admin-1", username: "admin1", password: "111" },
-    { id: "admin-2", username: "admin2", password: "222" },
-    { id: "admin-3", username: "admin3", password: "333" },
-  ],
-  coordinator: [
-    { id: "coord-1", username: "user1", password: "111" },
-    { id: "coord-2", username: "user2", password: "222" },
-    { id: "coord-3", username: "user3", password: "333" },
-  ],
-  guest: [
-    { id: "guest-1", username: "guest1", password: "111" },
-    { id: "guest-2", username: "guest2", password: "222" },
-    { id: "guest-3", username: "guest3", password: "333" },
-  ],
-};
-
-const INITIAL_LECTURERS = [
-  {
-    id: "lec-1",
-    name: "Dr. Aisyah Rahman",
-    departments: [
-      "MU221",
-      "MU110",
-    ],
-    minATS: 16,
-    maxATS: 18,
-    position: "Lecturer",
-    additionalInfo: "Composition, harmony, orchestration",
-    atsEntries: [
-      {
-        id: "ats-1",
-        courseCodes: ["MUC2213"],
-        courseNames: ["Composition Techniques I"],
-        programs: ["MU221"],
-        ks: 4,
-        k1Supervision: 1,
-        k2Research: 2,
-        k3Service: 1,
-        notes: "Final year composition mentoring",
-      },
-      {
-        id: "ats-2",
-        courseCodes: ["MUA1102", "MUA1103"],
-        courseNames: ["Aural Skills", "Music Theory Basics"],
-        programs: ["MU110"],
-        ks: 5,
-        k1Supervision: 0,
-        k2Research: 1,
-        k3Service: 1,
-        notes: "Combined diploma support class",
-      },
-    ],
-  },
-  {
-    id: "lec-2",
-    name: "Prof. Siti Mariam",
-    departments: ["MU220/MU230"],
-    minATS: 16,
-    maxATS: 18,
-    position: "Dean",
-    additionalInfo: "Music pedagogy, curriculum planning",
-    atsEntries: [
-      {
-        id: "ats-3",
-        courseCodes: ["MUE2304"],
-        courseNames: ["Curriculum Design for Music Educators"],
-        programs: ["MU220/MU230"],
-        ks: 3,
-        k1Supervision: 1,
-        k2Research: 3,
-        k3Service: 2,
-        notes: "Faculty leadership workload included",
-      },
-    ],
-  },
-  {
-    id: "lec-3",
-    name: "Mr. Daniel Chong",
-    departments: [
-      "MU222",
-      "MU790",
-    ],
-    minATS: 16,
-    maxATS: 18,
-    position: "Lecturer",
-    additionalInfo: "Piano, chamber coaching",
-    atsEntries: [
-      {
-        id: "ats-4",
-        courseCodes: ["MUP2221"],
-        courseNames: ["Principal Study Piano"],
-        programs: ["MU222"],
-        ks: 6,
-        k1Supervision: 2,
-        k2Research: 0,
-        k3Service: 1,
-        notes: "Studio teaching",
-      },
-      {
-        id: "ats-5",
-        courseCodes: ["MUP7902"],
-        courseNames: ["Advanced Performance Seminar"],
-        programs: ["MU790"],
-        ks: 4,
-        k1Supervision: 1,
-        k2Research: 1,
-        k3Service: 0,
-        notes: "Masters recital supervision",
-      },
-    ],
-  },
-  {
-    id: "lec-4",
-    name: "Dr. Farid Hakim",
-    departments: [
-      "MU111",
-      "MU223",
-    ],
-    minATS: 16,
-    maxATS: 18,
-    position: "Deputy Dean of Academic Affairs",
-    additionalInfo: "Audio production, music technology, industry practice",
-    atsEntries: [
-      {
-        id: "ats-6",
-        courseCodes: ["MUD1114"],
-        courseNames: ["Digital Audio Workstations"],
-        programs: ["MU111"],
-        ks: 4,
-        k1Supervision: 1,
-        k2Research: 1,
-        k3Service: 2,
-        notes: "Lab-heavy course",
-      },
-      {
-        id: "ats-7",
-        courseCodes: ["MUB2232"],
-        courseNames: ["Music Entrepreneurship"],
-        programs: ["MU223"],
-        ks: 3,
-        k1Supervision: 0,
-        k2Research: 1,
-        k3Service: 1,
-        notes: "",
-      },
-    ],
-  },
-  {
-    id: "lec-5",
-    name: "Dr. Nur Syafiqah",
-    departments: [
-      "MU750",
-      "MU950",
-    ],
-    minATS: 16,
-    maxATS: 18,
-    position: "Lecturer",
-    additionalInfo: "Research methods, ethnomusicology",
-    atsEntries: [
-      {
-        id: "ats-8",
-        courseCodes: ["MUR7501"],
-        courseNames: ["Research Colloquium"],
-        programs: ["MU750"],
-        ks: 2,
-        k1Supervision: 4,
-        k2Research: 3,
-        k3Service: 1,
-        notes: "Postgraduate supervision cluster",
-      },
-      {
-        id: "ats-9",
-        courseCodes: ["MUR9501"],
-        courseNames: ["Doctoral Research Seminar"],
-        programs: ["MU950"],
-        ks: 2,
-        k1Supervision: 4,
-        k2Research: 4,
-        k3Service: 1,
-        notes: "",
-      },
-    ],
-  },
-  {
-    id: "lec-6",
-    name: "Ms. Hannah Lee",
-    departments: [
-      "MU110",
-      "MU222",
-    ],
-    minATS: 16,
-    maxATS: 18,
-    position: "Lecturer",
-    additionalInfo: "Voice, diction, ensemble coaching",
-    atsEntries: [
-      {
-        id: "ats-10",
-        courseCodes: ["MUV1102"],
-        courseNames: ["Class Voice"],
-        programs: ["MU110"],
-        ks: 5,
-        k1Supervision: 0,
-        k2Research: 0,
-        k3Service: 1,
-        notes: "",
-      },
-      {
-        id: "ats-11",
-        courseCodes: ["MUV2223"],
-        courseNames: ["Vocal Repertoire Studies"],
-        programs: ["MU222"],
-        ks: 5,
-        k1Supervision: 1,
-        k2Research: 0,
-        k3Service: 1,
-        notes: "Choir concert prep",
-      },
-    ],
-  },
-  {
-    id: "lec-7",
-    name: "Mr. Adam Firdaus",
-    departments: [
-      "MU111",
-      "MU221",
-    ],
-    minATS: 16,
-    maxATS: 18,
-    position: "Lecturer",
-    additionalInfo: "Electronic music, sound design",
-    atsEntries: [
-      {
-        id: "ats-12",
-        courseCodes: ["MUE2215"],
-        courseNames: ["Electroacoustic Composition"],
-        programs: ["MU221"],
-        ks: 4,
-        k1Supervision: 1,
-        k2Research: 1,
-        k3Service: 0,
-        notes: "",
-      },
-      {
-        id: "ats-13",
-        courseCodes: ["MUD1115"],
-        courseNames: ["Sound Design Fundamentals"],
-        programs: ["MU111"],
-        ks: 4,
-        k1Supervision: 0,
-        k2Research: 1,
-        k3Service: 0,
-        notes: "",
-      },
-    ],
-  },
-  {
-    id: "lec-8",
-    name: "Dr. Priya Nair",
-    departments: [
-      "MU778",
-      "MU220/MU230",
-    ],
-    minATS: 16,
-    maxATS: 18,
-    position: "Lecturer",
-    additionalInfo: "Assessment design, reflective practice",
-    atsEntries: [
-      {
-        id: "ats-14",
-        courseCodes: ["MUE7782"],
-        courseNames: ["Contemporary Issues in Music Education"],
-        programs: ["MU778"],
-        ks: 3,
-        k1Supervision: 2,
-        k2Research: 1,
-        k3Service: 1,
-        notes: "",
-      },
-      {
-        id: "ats-15",
-        courseCodes: ["MUE2302"],
-        courseNames: ["Assessment in Music Teaching"],
-        programs: ["MU220/MU230"],
-        ks: 3,
-        k1Supervision: 1,
-        k2Research: 1,
-        k3Service: 1,
-        notes: "",
-      },
-    ],
-  },
+// --- Initial Data ---
+const INITIAL_PROGRAMS = [
+  "MU110", "MU111", "MU220/MU230", "MU221", "MU222", 
+  "MU223", "MU750", "MU778", "MU790", "MU950",
 ];
 
 const POSITION_OPTIONS = [
-  "Lecturer",
-  "Dean",
-  "Deputy Dean of Academic Affairs",
+  "Lecturer", "Senior Lecturer", "Assoc. Professor", 
+  "Professor", "Dean", "Deputy Dean", "Head of Program"
 ];
 
 const LOGIN_ROLE_OPTIONS = [
@@ -367,761 +18,913 @@ const LOGIN_ROLE_OPTIONS = [
   { key: "guest", label: "Guest" },
 ];
 
+const INITIAL_COURSES = [
+  { id: "crs-1", code: "MUC2213", name: "Composition Techniques I", programs: ["MU221"] },
+  { id: "crs-2", code: "MUA1102", name: "Aural Skills", programs: ["MU110"] },
+  { id: "crs-3", code: "MUE2304", name: "Curriculum Design", programs: ["MU220/MU230"] },
+  { id: "crs-4", code: "MUP2221", name: "Principal Study Piano", programs: ["MU222"] },
+  { id: "crs-5", code: "MUD1114", name: "Digital Audio Workstations", programs: ["MU111"] }
+];
+
+const INITIAL_GROUPS = [
+  { id: "group-1", department: "MU221", groupName: "MU221SEM1N", studentCount: 12 },
+  { id: "group-2", department: "MU221", groupName: "MU221SEM2", studentCount: 10 },
+  { id: "group-3", department: "MU222", groupName: "MU222SEM3", studentCount: 8 },
+  { id: "group-4", department: "MU220/MU230", groupName: "MU230SEM6", studentCount: 9 },
+  { id: "group-5", department: "MU110", groupName: "MU110SEM1", studentCount: 15 },
+  { id: "group-6", department: "MU111", groupName: "MU111SEM1", studentCount: 22 },
+];
+
+const INITIAL_USERS = {
+  admin: [{ id: "admin-1", username: "admin1", password: "111" }],
+  coordinator: [{ id: "coord-1", username: "user1", password: "111" }],
+  guest: [{ id: "guest-1", username: "guest1", password: "111" }],
+};
+
+const INITIAL_LECTURERS = [
+  {
+    id: "lec-1", name: "Dr. Aisyah Rahman", departments: ["MU221", "MU110"],
+    minATS: 16, maxATS: 18, position: "Lecturer", additionalInfo: "Composition", remarks: "",
+    atsEntries: [{ id: "ats-1", courseCodes: ["MUC2213"], courseNames: ["Composition Techniques I"], programs: ["MU221"], groups: ["MU221SEM1N"], contactHours: 4, ks: 4, k1Supervision: 1, k2Research: 2, k3Service: 1, notes: "Final year composition" }]
+  },
+  {
+    id: "lec-2", name: "Prof. Siti Mariam", departments: ["MU220/MU230"],
+    minATS: 16, maxATS: 18, position: "Dean", additionalInfo: "Pedagogy", remarks: "Leadership workload",
+    atsEntries: []
+  },
+  {
+    id: "lec-3", name: "Dr. Ahmad Fariz", departments: ["MU111"],
+    minATS: 14, maxATS: 16, position: "Senior Lecturer", additionalInfo: "Audio Tech", remarks: "",
+    atsEntries: [{ id: "ats-2", courseCodes: ["MUD1114"], courseNames: ["Digital Audio Workstations"], programs: ["MU111"], groups: ["MU111SEM1"], contactHours: 3, ks: 3, k1Supervision: 0, k2Research: 2, k3Service: 0, notes: "Lab based" }]
+  },
+  {
+    id: "lec-4", name: "Assoc. Prof. Chloe", departments: ["MU222"],
+    minATS: 12, maxATS: 15, position: "Assoc. Professor", additionalInfo: "Classical Piano", remarks: "",
+    atsEntries: [{ id: "ats-3", courseCodes: ["MUP2221"], courseNames: ["Principal Study Piano"], programs: ["MU222"], groups: ["MU222SEM3"], contactHours: 6, ks: 6, k1Supervision: 3, k2Research: 4, k3Service: 2, notes: "1-on-1 sessions" }]
+  },
+  {
+    id: "lec-5", name: "Mr. Tan Wei", departments: ["MU110"],
+    minATS: 18, maxATS: 20, position: "Lecturer", additionalInfo: "Aural Training", remarks: "Heavy teaching load",
+    atsEntries: [{ id: "ats-4", courseCodes: ["MUA1102"], courseNames: ["Aural Skills"], programs: ["MU110"], groups: ["MU110SEM1"], contactHours: 5, ks: 5, k1Supervision: 0, k2Research: 1, k3Service: 0, notes: "Large group" }]
+  }
+];
+
+// --- Helper Functions ---
 function getAtsTotal(lecturer) {
-  return lecturer.atsEntries.reduce((sum, entry) => {
-    return (
-      sum +
-      Number(entry.ks || 0) +
-      Number(entry.k1Supervision || 0) +
-      Number(entry.k2Research || 0) +
-      Number(entry.k3Service || 0)
-    );
-  }, 0);
+  if (!lecturer || !lecturer.atsEntries) return 0;
+  return lecturer.atsEntries.reduce((sum, entry) => sum + Number(entry.ks || 0) + Number(entry.k1Supervision || 0) + Number(entry.k2Research || 0) + Number(entry.k3Service || 0), 0);
 }
-function getAtsColumnTotals(lecturer) {
-  return lecturer.atsEntries.reduce(
-    (totals, entry) => {
-      totals.ks += Number(entry.ks || 0);
-      totals.k1 += Number(entry.k1Supervision || 0);
-      totals.k2 += Number(entry.k2Research || 0);
-      totals.k3 += Number(entry.k3Service || 0);
-      return totals;
-    },
-    { ks: 0, k1: 0, k2: 0, k3: 0 }
+
+function getSemesterFromGroup(groupName) {
+  if (groupName && typeof groupName === 'string' && groupName.includes("SEM")) {
+    return "Semester " + groupName.split("SEM")[1];
+  }
+  return "-";
+}
+
+function createBlankAtsEntry() {
+  return { id: `ats-${Date.now()}`, courseCodes: [], courseNames: [], programs: [], groups: [], contactHours: 0, ks: 0, k1Supervision: 0, k2Research: 0, k3Service: 0, notes: "" };
+}
+
+// --- Custom UI Components ---
+function AutocompleteMultiSelect({ options = [], selected = [], onChange, placeholder }) {
+  const [query, setQuery] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const safeSelected = Array.isArray(selected) ? selected : [];
+  const filteredOptions = (options || []).filter(opt => 
+    opt && opt.toLowerCase().includes((query || "").toLowerCase()) && !safeSelected.includes(opt)
+  );
+
+  const handleSelect = (val) => {
+    onChange([...safeSelected, val]);
+    setQuery("");
+    setIsOpen(false);
+  };
+
+  const handleRemove = (val) => {
+    onChange(safeSelected.filter(item => item !== val));
+  };
+
+  return (
+    <div className="autocomplete-container">
+      <div className="autocomplete-input-box" onClick={() => setIsOpen(true)}>
+        {safeSelected.map(s => (
+          <span key={s} className="chip">
+            {s} 
+            <button type="button" onClick={(e) => { e.stopPropagation(); handleRemove(s); }}>&times;</button>
+          </span>
+        ))}
+        <input 
+          value={query} 
+          onChange={e => setQuery(e.target.value)} 
+          onFocus={() => setIsOpen(true)}
+          onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+          placeholder={safeSelected.length === 0 ? placeholder : ""}
+          className="autocomplete-input"
+        />
+      </div>
+      {isOpen && filteredOptions.length > 0 && (
+        <ul className="autocomplete-dropdown">
+          {filteredOptions.map(opt => (
+            <li key={opt} onMouseDown={(e) => { e.preventDefault(); handleSelect(opt); }}>{opt}</li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
-function formatProgramsShort(programs) {
-  return programs
-    .map((program) => String(program).split(" ")[0])
-    .join(" / ");
-}
+function AutocompleteSingleSelect({ options = [], selected, onChange, placeholder }) {
+  const [query, setQuery] = useState(selected || "");
+  const [isOpen, setIsOpen] = useState(false);
 
-function formatListSlash(items) {
-  return items.join(" / ");
-}
-function createBlankAtsEntry() {
-  return {
-    id: `ats-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    courseCodes: [""],
-    courseNames: [""],
-    programs: [""],
-    groups: [],
-    ks: 0,
-    k1Supervision: 0,
-    k2Research: 0,
-    k3Service: 0,
-    notes: "",
+  useEffect(() => {
+    setQuery(selected || "");
+  }, [selected]);
+
+  const filteredOptions = (options || []).filter(opt => 
+    opt && opt.toLowerCase().includes((query || "").toLowerCase())
+  );
+
+  const handleSelect = (val) => {
+    onChange(val);
+    setQuery(val);
+    setIsOpen(false);
   };
+
+  return (
+    <div className="autocomplete-container">
+      <div className="autocomplete-input-box single">
+        <input 
+          value={query} 
+          onChange={e => { setQuery(e.target.value); if(!isOpen) setIsOpen(true); onChange(""); }} 
+          onFocus={() => setIsOpen(true)}
+          onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+          placeholder={placeholder}
+          className="autocomplete-input"
+        />
+      </div>
+      {isOpen && filteredOptions.length > 0 && (
+        <ul className="autocomplete-dropdown">
+          {filteredOptions.map(opt => (
+            <li key={opt} onMouseDown={(e) => { e.preventDefault(); handleSelect(opt); }}>{opt}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
-function createBlankLecturer() {
-  return {
-    id: `lec-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    name: "",
-    departments: [],
-    minATS: 16,
-    maxATS: 18,
-    position: "Lecturer",
-    additionalInfo: "",
-    atsEntries: [],
-  };
-}
-
-function createBlankUser(roleKey) {
-  return {
-    id: `${roleKey}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    username: "",
-    password: "",
-  };
-}
-
-function App() {
-  const [users, setUsers] = useState(INITIAL_USERS);
+// --- Main App Component ---
+export default function App() {
+  const [users] = useState(INITIAL_USERS);
   const [lecturers, setLecturers] = useState(INITIAL_LECTURERS);
+  const [coursesList, setCoursesList] = useState(INITIAL_COURSES);
+  const [groups, setGroups] = useState(INITIAL_GROUPS);
+  const [programsList, setProgramsList] = useState(INITIAL_PROGRAMS);
+  
+  const [globalInfo, setGlobalInfo] = useState({
+    faculty: "Faculty of Music",
+    semester: "Semester 2026/2",
+    mode: "Draft" 
+  });
+
   const [screen, setScreen] = useState("login");
   const [selectedLoginRole, setSelectedLoginRole] = useState("admin");
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
-
   const [currentUser, setCurrentUser] = useState(null);
 
   const [selectedDepartment, setSelectedDepartment] = useState("All Departments");
-  const [lecturerQuery, setLecturerQuery] = useState("");
   const [selectedLecturerId, setSelectedLecturerId] = useState(null);
-
-  const [settingsSection, setSettingsSection] = useState("users");
-  const [groups, setGroups] = useState(INITIAL_GROUPS);
-  const [selectedGroupDepartment, setSelectedGroupDepartment] = useState(PROGRAM_CODES[0] ?? "");
-  const [newGroupName, setNewGroupName] = useState("");
-  const [newGroupStudentCount, setNewGroupStudentCount] = useState("");
-  const [isAtsEditMode, setIsAtsEditMode] = useState(false);
+  const [groupFilterDept, setGroupFilterDept] = useState("All");
+  const [settingsTab, setSettingsTab] = useState("general");
+  
+  const [isOtherCoursesOpen, setIsOtherCoursesOpen] = useState(false);
   const [isAddAtsModalOpen, setIsAddAtsModalOpen] = useState(false);
   const [newAtsDraft, setNewAtsDraft] = useState(createBlankAtsEntry());
-  const atsSuggestionPool = useMemo(() => {
-  const entries = lecturers.flatMap((lecturer) => lecturer.atsEntries || []);
 
-  const unique = (values) =>
-    Array.from(
-      new Set(
-        values
-          .map((value) => (value ?? "").toString().trim())
-          .filter(Boolean)
-      )
-    ).sort((a, b) => a.localeCompare(b));
+  const [lecturerDraft, setLecturerDraft] = useState(null);
+  const [courseDraft, setCourseDraft] = useState(null);
 
-  return {
-    courseCodes: unique(entries.map((entry) => entry.courseCodes)),
-    courseNames: unique(entries.map((entry) => entry.courseNames)),
-    programs: unique(entries.map((entry) => entry.programs)),
-    groups: unique(entries.map((entry) => entry.group)),
-  };
-}, [lecturers]);
-  const [isAtsModalOpen, setIsAtsModalOpen] = useState(false);
-  const [editingAtsEntryId, setEditingAtsEntryId] = useState(null);
-  const [atsDraft, setAtsDraft] = useState(createBlankAtsEntry());
-  const [servicingSection, setServicingSection] = useState("diploma");
-  const [userRoleFilter, setUserRoleFilter] = useState("coordinator");
-  const [newUserDraft, setNewUserDraft] = useState(createBlankUser("coordinator"));
+  const isAdminOrDev = currentUser?.role === "admin" || currentUser?.role === "developer";
+  const isReadOnly = globalInfo.mode === "Completed" && !isAdminOrDev;
 
-  const [editingLecturerId, setEditingLecturerId] = useState(null);
-  const [newLecturerDraft, setNewLecturerDraft] = useState(createBlankLecturer());
-
-  const currentRole = currentUser?.role ?? null;
-const canAccessSettings = currentRole === "developer" || currentRole === "admin";
-const canManageUsers = currentRole === "developer" || currentRole === "admin";
-const canEditLecturers = currentRole === "developer" || currentRole === "admin";
-const canAddLecturers = currentRole === "developer" || currentRole === "admin";
-const canEditAtsEntries = currentRole === "developer" || currentRole === "admin" || currentRole === "coordinator";
   const filteredLecturers = useMemo(() => {
-    return lecturers.filter((lecturer) => {
-      const matchesDepartment =
-        selectedDepartment === "All Departments" ||
-        lecturer.departments.includes(selectedDepartment);
+    return lecturers.filter(l => selectedDepartment === "All Departments" || (l.departments || []).includes(selectedDepartment));
+  }, [lecturers, selectedDepartment]);
 
-      const matchesQuery =
-        lecturerQuery.trim() === "" ||
-        lecturer.name.toLowerCase().includes(lecturerQuery.toLowerCase());
+  const selectedLecturer = lecturers.find(l => l.id === selectedLecturerId) || null;
 
-      return matchesDepartment && matchesQuery;
-    });
-  }, [lecturers, selectedDepartment, lecturerQuery]);
-
-  const selectedLecturer =
-   lecturers.find((lecturer) => lecturer.id === selectedLecturerId) ?? null;
-  const filteredGroups = groups.filter(
-  (group) => group.department === selectedGroupDepartment
-  );
-  const lecturerSuggestions = useMemo(() => {
-    return filteredLecturers.slice(0, 8);
-  }, [filteredLecturers]);
-
-  const summary = useMemo(() => {
-    let over = 0;
-    let under = 0;
-    let within = 0;
-
-    lecturers.forEach((lecturer) => {
-      const total = getAtsTotal(lecturer);
-      if (total > lecturer.maxATS) over += 1;
-      else if (total < lecturer.minATS) under += 1;
-      else within += 1;
-    });
-
-    return {
-      totalLecturers: lecturers.length,
-      over,
-      under,
-      within,
-    };
-  }, [lecturers]);
-
-  const flaggedLecturers = useMemo(() => {
-    return lecturers
-      .map((lecturer) => ({
-        ...lecturer,
-        totalATS: getAtsTotal(lecturer),
-      }))
-      .sort((a, b) => b.totalATS - a.totalATS);
-  }, [lecturers]);
-
-  function resetLoginFields() {
-    setLoginUsername("");
-    setLoginPassword("");
+  function handleLogin(e) {
+    e.preventDefault();
     setLoginError("");
-  }
-
-  function handleLogin(event) {
-    event.preventDefault();
-    setLoginError("");
-
-    if (loginPassword === "openlah231787") {
-      setCurrentUser({
-        role: "developer",
-        username: "developer",
-        displayName: "Developer",
-      });
+    if (loginPassword === "dev") {
+      setCurrentUser({ role: "developer", displayName: "Developer" });
       setScreen("dashboard");
-      resetLoginFields();
       return;
     }
-
-    const userPool = users[selectedLoginRole] || [];
-    const matchedUser = userPool.find(
-      (user) => user.username === loginUsername && user.password === loginPassword
-    );
-
-    if (!matchedUser) {
-      setLoginError("Invalid username or password.");
-      return;
-    }
-
-    setCurrentUser({
-      role: selectedLoginRole,
-      username: matchedUser.username,
-      displayName:
-        selectedLoginRole === "admin"
-          ? "Admin"
-          : selectedLoginRole === "coordinator"
-          ? "Program Coordinator"
-          : "Guest",
-    });
+    const matchedUser = (users[selectedLoginRole] || []).find(u => u.username === loginUsername && u.password === loginPassword);
+    if (!matchedUser) { setLoginError("Invalid username or password."); return; }
+    setCurrentUser({ role: selectedLoginRole, displayName: selectedLoginRole });
     setScreen("dashboard");
-    resetLoginFields();
   }
-function renderMainContent() {
-  if (screen === "groupInfo") {
-  return (
-    <section className="page-grid">
-      <div className="panel panel-wide">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Academic admin</p>
-            <h3>Group Info</h3>
-            <p className="muted-copy">
-              Manage group codes by program and track the number of students in each group.
-            </p>
+
+  function saveAtsEntry() {
+    setLecturers(prev => prev.map(l => l.id === selectedLecturerId ? { ...l, atsEntries: [...(l.atsEntries || []), newAtsDraft] } : l));
+    setIsAddAtsModalOpen(false);
+    setNewAtsDraft(createBlankAtsEntry());
+  }
+
+  const handleSelectMultipleChange = (stateSetter, field, e) => {
+    const selected = Array.from(e.target.selectedOptions, option => option.value);
+    stateSetter(prev => ({ ...prev, [field]: selected }));
+  };
+
+  function getGroupDisplay(groupName) {
+    if (!groupName) return "-";
+    const groupObj = groups.find(g => g.groupName === groupName);
+    return groupObj ? `${groupName} (${groupObj.studentCount || 0})` : groupName;
+  }
+
+  function openEditLecturer(lecturer) {
+    if (lecturer) setLecturerDraft(lecturer);
+    else setLecturerDraft({ id: `lec-${Date.now()}`, name: "", departments: [], minATS: 16, maxATS: 18, position: "Lecturer", additionalInfo: "", remarks: "", atsEntries: [] });
+  }
+
+  function saveLecturer() {
+    if (lecturers.find(l => l.id === lecturerDraft.id)) {
+      setLecturers(lecturers.map(l => l.id === lecturerDraft.id ? lecturerDraft : l));
+    } else {
+      setLecturers([...lecturers, lecturerDraft]);
+    }
+    setLecturerDraft(null);
+  }
+
+  function openEditCourse(course) {
+    if (course) setCourseDraft(course);
+    else setCourseDraft({ id: `crs-${Date.now()}`, code: "", name: "", programs: [] });
+  }
+
+  function saveCourse() {
+    if (coursesList.find(c => c.id === courseDraft.id)) {
+      setCoursesList(coursesList.map(c => c.id === courseDraft.id ? courseDraft : c));
+    } else {
+      setCoursesList([...coursesList, courseDraft]);
+    }
+    setCourseDraft(null);
+  }
+
+  function renderSidebar() {
+    return (
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div className="brand-mark small">ATS</div>
+            <h2>Planner</h2>
+          </div>
+          <div className="sidebar-sub-brand">
+            <p>{globalInfo.faculty}</p>
+            <p>{globalInfo.semester}</p>
+            <span className={`mode-badge ${globalInfo.mode.toLowerCase()}`}>{globalInfo.mode} Mode</span>
           </div>
         </div>
+        <nav className="sidebar-nav">
+          <button className={`nav-link ${screen === "dashboard" ? "active" : ""}`} onClick={() => setScreen("dashboard")}>Dashboard</button>
+          <button className={`nav-link ${screen === "groupInfo" ? "active" : ""}`} onClick={() => setScreen("groupInfo")}>Group Info</button>
+          <button className={`nav-link ${screen === "lecturerAts" ? "active" : ""}`} onClick={() => setScreen("lecturerAts")}>Lecturer ATS</button>
 
-        <div className="form-grid three-cols">
-          <label className="field">
-            <span>Program Code</span>
-            <select
-              value={selectedGroupDepartment}
-              onChange={(e) => setSelectedGroupDepartment(e.target.value)}
-            >
-              {PROGRAM_CODES.map((programCode) => (
-                <option key={programCode} value={programCode}>
-                  {programCode}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field">
-            <span>Group Code</span>
-            <input
-              type="text"
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              placeholder="Example: MU221SEM1N"
-            />
-          </label>
-
-          <label className="field">
-            <span>Student Count</span>
-            <input
-              type="number"
-              min="0"
-              value={newGroupStudentCount}
-              onChange={(e) => setNewGroupStudentCount(e.target.value)}
-              placeholder="0"
-            />
-          </label>
-        </div>
-
-        <div className="action-row">
-          <button type="button" className="primary-button" onClick={handleAddGroup}>
-            Add Group
+          <div className="other-courses-dropdown">
+            <button className="nav-link dropdown-toggle" onClick={() => setIsOtherCoursesOpen(!isOtherCoursesOpen)}>
+              Other Courses {isOtherCoursesOpen ? "▼" : "▶"}
+            </button>
+            {isOtherCoursesOpen && (
+              <div className="dropdown-menu">
+                <button className={`nav-link sub-link ${screen === "muf" ? "active" : ""}`} onClick={() => setScreen("muf")}>MUF Codes</button>
+                <button className={`nav-link sub-link ${screen === "performing" ? "active" : ""}`} onClick={() => setScreen("performing")}>Performing Groups</button>
+                <button className={`nav-link sub-link ${screen === "servicing" ? "active" : ""}`} onClick={() => setScreen("servicing")}>Servicing Codes</button>
+                <button className={`nav-link sub-link ${screen === "forum" ? "active" : ""}`} onClick={() => setScreen("forum")}>Forum/Colloquium</button>
+              </div>
+            )}
+          </div>
+        </nav>
+        <div className="sidebar-footer">
+          <div className="user-status-text">Logged in as <strong>{currentUser?.displayName}</strong></div>
+          {isAdminOrDev && (
+            <button className={`ghost-button footer-btn ${screen === "settings" ? "active" : ""}`} onClick={() => setScreen("settings")}>
+              ⚙️ Settings (Admin)
+            </button>
+          )}
+          <button className="ghost-button red footer-btn" onClick={() => { setCurrentUser(null); setScreen("login"); }}>
+            Sign out
           </button>
         </div>
+      </aside>
+    );
+  }
 
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Program Code</th>
-                <th>Group Code</th>
-                <th>Student Count</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredGroups.length > 0 ? (
-                filteredGroups.map((group) => (
-                  <tr key={group.id}>
-                    <td>{group.department}</td>
-                    <td>{group.groupName}</td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        value={group.studentCount}
-                        onChange={(e) =>
-                          handleUpdateGroupStudentCount(group.id, e.target.value)
-                        }
-                      />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="3">
-                    <div className="empty-state-box">
-                      No groups added for this program code yet.
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+  function renderAddAtsModal() {
+    if (!isAddAtsModalOpen) return null;
+    return (
+      <div className="modal-overlay">
+        <div className="modal-content fullscreen-modal">
+          <div className="modal-header">
+            <h3>Add ATS Entry for {selectedLecturer?.name || "Lecturer"}</h3>
+            <button className="ghost-button compact" onClick={() => setIsAddAtsModalOpen(false)}>Close</button>
+          </div>
+          <div className="modal-body">
+            <div className="ats-grid-row-1">
+              <label className="field"><span>Course Code(s)</span>
+                <AutocompleteMultiSelect 
+                  options={coursesList.map(c => c.code)} 
+                  selected={newAtsDraft.courseCodes} 
+                  onChange={val => setNewAtsDraft({...newAtsDraft, courseCodes: val})} 
+                  placeholder="Type to search codes..."
+                />
+              </label>
+              <label className="field"><span>Course Name(s)</span>
+                <AutocompleteMultiSelect 
+                  options={coursesList.map(c => c.name)} 
+                  selected={newAtsDraft.courseNames} 
+                  onChange={val => setNewAtsDraft({...newAtsDraft, courseNames: val})} 
+                  placeholder="Type to search names..."
+                />
+              </label>
+              <label className="field"><span>Program(s)</span>
+                <AutocompleteMultiSelect 
+                  options={programsList} 
+                  selected={newAtsDraft.programs} 
+                  onChange={val => setNewAtsDraft({...newAtsDraft, programs: val})} 
+                  placeholder="Type to search programs..."
+                />
+              </label>
+            </div>
+
+            <div className="ats-grid-row-2">
+              <label className="field"><span>Group(s)</span>
+                <AutocompleteMultiSelect 
+                  options={groups.map(g => g.groupName)} 
+                  selected={newAtsDraft.groups} 
+                  onChange={val => setNewAtsDraft({...newAtsDraft, groups: val})} 
+                  placeholder="Type to search groups..."
+                />
+              </label>
+              <label className="field tight-input"><span>Contact Hours</span>
+                <input type="number" value={newAtsDraft.contactHours} onChange={e => setNewAtsDraft({...newAtsDraft, contactHours: e.target.value})} />
+              </label>
+              <label className="field tight-input"><span>KS</span>
+                <input type="number" value={newAtsDraft.ks} onChange={e => setNewAtsDraft({...newAtsDraft, ks: e.target.value})} />
+              </label>
+            </div>
+
+            <div className="ats-grid-row-3">
+              <label className="field tight-input"><span>K1 (Supervision)</span>
+                <input type="number" value={newAtsDraft.k1Supervision} onChange={e => setNewAtsDraft({...newAtsDraft, k1Supervision: e.target.value})} />
+              </label>
+              <label className="field tight-input"><span>K2 (Research)</span>
+                <input type="number" value={newAtsDraft.k2Research} onChange={e => setNewAtsDraft({...newAtsDraft, k2Research: e.target.value})} />
+              </label>
+              <label className="field tight-input"><span>K3 (Service)</span>
+                <input type="number" value={newAtsDraft.k3Service} onChange={e => setNewAtsDraft({...newAtsDraft, k3Service: e.target.value})} />
+              </label>
+            </div>
+
+            <div className="ats-grid-row-4">
+              <label className="field"><span>Notes</span>
+                <textarea rows="2" value={newAtsDraft.notes} onChange={e => setNewAtsDraft({...newAtsDraft, notes: e.target.value})} placeholder="Any additional notes..."></textarea>
+              </label>
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button className="primary-button full-width" onClick={saveAtsEntry}>Save ATS Entry</button>
+          </div>
         </div>
       </div>
-    </section>
-  );
-}
+    );
+  }
 
-  if (screen === "servicingCodes") {
+  function renderLecturerModal() {
+    if (!lecturerDraft) return null;
+    return (
+      <div className="global-overlay">
+        <div className="modal-content center-modal">
+          <div className="modal-header">
+            <h3>{lecturerDraft.id.startsWith("lec-") && lecturerDraft.name ? "Edit Lecturer" : "Add New Lecturer"}</h3>
+            <button className="ghost-button compact" onClick={() => setLecturerDraft(null)}>Close</button>
+          </div>
+          <div className="modal-body">
+            <div className="form-grid three-cols">
+              <label className="field"><span>Name</span>
+                <input type="text" value={lecturerDraft.name} onChange={e => setLecturerDraft({...lecturerDraft, name: e.target.value})} />
+              </label>
+              <label className="field"><span>Position</span>
+                <select value={lecturerDraft.position} onChange={e => setLecturerDraft({...lecturerDraft, position: e.target.value})}>
+                  <option value="">Select Position...</option>
+                  {POSITION_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </label>
+              <label className="field"><span>Department(s)</span>
+                <select multiple value={lecturerDraft.departments || []} onChange={e => handleSelectMultipleChange(setLecturerDraft, "departments", e)} className="multi-select" style={{height: "90px"}}>
+                  {programsList.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <small className="hint">Hold Ctrl/Cmd to select multiple</small>
+              </label>
+            </div>
+            <div className="form-grid three-cols" style={{marginTop: "1rem"}}>
+              <label className="field tight-input"><span>Min ATS</span>
+                <input type="number" value={lecturerDraft.minATS} onChange={e => setLecturerDraft({...lecturerDraft, minATS: Number(e.target.value)})} />
+              </label>
+              <label className="field tight-input"><span>Max ATS</span>
+                <input type="number" value={lecturerDraft.maxATS} onChange={e => setLecturerDraft({...lecturerDraft, maxATS: Number(e.target.value)})} />
+              </label>
+              <label className="field"><span>Expertise</span>
+                <input type="text" value={lecturerDraft.additionalInfo} onChange={e => setLecturerDraft({...lecturerDraft, additionalInfo: e.target.value})} />
+              </label>
+            </div>
+            <div className="ats-grid-row-4">
+              <label className="field"><span>Remarks</span>
+                <textarea rows="2" value={lecturerDraft.remarks || ""} onChange={e => setLecturerDraft({...lecturerDraft, remarks: e.target.value})} placeholder="Any additional remarks..."></textarea>
+              </label>
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button className="primary-button full-width" onClick={saveLecturer}>Save Lecturer</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderCourseModal() {
+    if (!courseDraft) return null;
+    return (
+      <div className="global-overlay">
+        <div className="modal-content center-modal">
+          <div className="modal-header">
+            <h3>{courseDraft.id.startsWith("crs-") && courseDraft.code ? "Edit Course" : "Add New Course"}</h3>
+            <button className="ghost-button compact" onClick={() => setCourseDraft(null)}>Close</button>
+          </div>
+          <div className="modal-body">
+            <div className="form-grid three-cols">
+              <label className="field"><span>Course Code</span>
+                <input type="text" value={courseDraft.code} onChange={e => setCourseDraft({...courseDraft, code: e.target.value})} />
+              </label>
+              <label className="field"><span>Course Name</span>
+                <input type="text" value={courseDraft.name} onChange={e => setCourseDraft({...courseDraft, name: e.target.value})} />
+              </label>
+              <label className="field"><span>Program(s)</span>
+                <select multiple value={courseDraft.programs || []} onChange={e => handleSelectMultipleChange(setCourseDraft, "programs", e)} className="multi-select" style={{height: "100px"}}>
+                  {programsList.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <small className="hint">Hold Ctrl/Cmd to select multiple</small>
+              </label>
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button className="primary-button full-width" onClick={saveCourse}>Save Course</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderMainContent() {
+    if (screen === "dashboard") {
+      const lecturersStatus = lecturers.map(l => {
+        const total = getAtsTotal(l);
+        let status = "Normal";
+        if (total === 0) status = "No ATS";
+        else if (total > l.maxATS) status = "Overload";
+        else if (total < l.minATS) status = "Underload";
+        return { ...l, total, status };
+      }).filter(l => l.status !== "Normal");
+
+      const assignedCourseCodes = lecturers.flatMap(l => (l.atsEntries || []).flatMap(e => e.courseCodes || []));
+      const unassignedCourses = coursesList.filter(c => !assignedCourseCodes.includes(c.code));
+
+      const courseCodeCounts = {};
+      lecturers.forEach(l => {
+        (l.atsEntries || []).forEach(e => {
+          (e.courseCodes || []).forEach(code => {
+             courseCodeCounts[code] = (courseCodeCounts[code] || 0) + 1;
+          });
+        });
+      });
+      const duplicateCourseCodes = Object.entries(courseCodeCounts).filter(([_, count]) => count > 1).map(([code, count]) => ({ code, count }));
+
+      return (
+        <section className="page-grid">
+          <div className="panel panel-wide">
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <div>
+                  <p className="eyebrow">Overview</p>
+                  <h3>Dashboard</h3>
+                </div>
+                <button className="primary-button" onClick={() => setScreen("allLecturersAts")}>
+                  View All Lecturers ATS
+                </button>
+             </div>
+          </div>
+
+          <div className="dashboard-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem" }}>
+            <div className="panel">
+              <h3>Lecturer Load Status</h3>
+              <p className="muted-copy" style={{fontSize: "0.8rem", marginBottom: "1rem"}}>Flags lecturers under or over ATS limits.</p>
+              <div className="tight-table-wrapper" style={{maxHeight: "300px", overflowY: "auto"}}>
+                <table className="tight-table data-table">
+                  <thead><tr><th>Lecturer</th><th>Total (Min-Max)</th><th>Status</th></tr></thead>
+                  <tbody>
+                    {lecturersStatus.map(l => (
+                      <tr key={l.id}>
+                        <td>{l.name}</td><td>{l.total} ({l.minATS}-{l.maxATS})</td>
+                        <td><span className={`status-pill ${l.status.replace(/\s+/g, '-').toLowerCase()}`}>{l.status}</span></td>
+                      </tr>
+                    ))}
+                    {lecturersStatus.length === 0 && <tr><td colSpan="3" className="muted-copy text-center">All loaded optimally.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="panel">
+              <h3>Unassigned Courses</h3>
+              <p className="muted-copy" style={{fontSize: "0.8rem", marginBottom: "1rem"}}>Courses not yet mapped to any lecturer.</p>
+              <div className="tight-table-wrapper" style={{maxHeight: "300px", overflowY: "auto"}}>
+                <table className="tight-table data-table">
+                  <thead><tr><th>Course Code</th><th>Course Name</th></tr></thead>
+                  <tbody>
+                    {unassignedCourses.map(c => <tr key={c.id}><td>{c.code}</td><td>{c.name}</td></tr>)}
+                    {unassignedCourses.length === 0 && <tr><td colSpan="2" className="muted-copy text-center">All courses assigned.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="panel">
+              <h3>Duplicate Courses</h3>
+              <p className="muted-copy" style={{fontSize: "0.8rem", marginBottom: "1rem"}}>Courses assigned multiple times.</p>
+              <div className="tight-table-wrapper" style={{maxHeight: "300px", overflowY: "auto"}}>
+                <table className="tight-table data-table">
+                  <thead><tr><th>Course Code</th><th>Occurrences</th></tr></thead>
+                  <tbody>
+                    {duplicateCourseCodes.map(d => <tr key={d.code}><td>{d.code}</td><td>{d.count} times</td></tr>)}
+                    {duplicateCourseCodes.length === 0 && <tr><td colSpan="2" className="muted-copy text-center">No duplicates found.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (screen === "allLecturersAts") {
+      return (
+        <section className="page-grid">
+          <div className="panel panel-wide">
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+               <h3>All Lecturers ATS</h3>
+               <button className="ghost-button compact" onClick={() => setScreen("dashboard")}>Back</button>
+             </div>
+             <div className="tab-row" style={{marginTop: "1rem"}}>
+                <button className={`tab-button ${selectedDepartment === "All Departments" ? "active" : ""}`} onClick={() => setSelectedDepartment("All Departments")}>All</button>
+                {programsList.map(dep => (
+                  <button key={dep} className={`tab-button ${selectedDepartment === dep ? "active" : ""}`} onClick={() => setSelectedDepartment(dep)}>{dep}</button>
+                ))}
+             </div>
+             <div className="tight-table-wrapper">
+               <table className="tight-table data-table">
+                  <thead><tr><th>Lecturer Name</th><th>Dept</th><th>Groups Handled</th><th>Total ATS</th><th>Min/Max</th></tr></thead>
+                  <tbody>
+                    {filteredLecturers.map(l => {
+                      const allGroups = (l.atsEntries || []).flatMap(e => e.groups || []);
+                      const uniqueGroups = [...new Set(allGroups)].filter(Boolean);
+                      return (
+                        <tr key={l.id}>
+                          <td>
+                            <button className="link-button" onClick={() => { setSelectedLecturerId(l.id); setScreen("lecturerAts"); }}>
+                              <strong>{l.name}</strong>
+                            </button>
+                          </td>
+                          <td>{(l.departments || []).join(", ")}</td>
+                          <td style={{fontSize: "0.85rem", color: "#a8b5d6"}}>
+                            {uniqueGroups.map(g => getGroupDisplay(g)).join(", ") || "-"}
+                          </td>
+                          <td>{getAtsTotal(l)}</td>
+                          <td>{l.minATS} - {l.maxATS}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+               </table>
+             </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (screen === "groupInfo") {
+      const filteredGroups = groups.filter(g => groupFilterDept === "All" || g.department === groupFilterDept);
+      return (
+        <section className="page-grid">
+          <div className="panel panel-wide">
+            <div className="panel-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3>Group Info</h3>
+                <p className="muted-copy" style={{fontSize: "0.85rem"}}>Manage student counts. {isReadOnly ? "(Read-Only Mode)" : ""}</p>
+              </div>
+              <div style={{width: "200px"}}>
+                <select value={groupFilterDept} onChange={e => setGroupFilterDept(e.target.value)}>
+                  <option value="All">All Programs</option>
+                  {programsList.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead><tr><th>Group Name</th><th>Program</th><th>SEMESTER</th><th>Student Count</th></tr></thead>
+                <tbody>
+                  {filteredGroups.map((group) => (
+                    <tr key={group.id}>
+                      <td>{group.groupName}</td>
+                      <td>{group.department}</td>
+                      <td><span className="pill">{getSemesterFromGroup(group.groupName)}</span></td>
+                      <td>
+                        <input type="number" 
+                          value={group.studentCount} 
+                          disabled={isReadOnly}
+                          onChange={(e) => setGroups(groups.map(g => g.id === group.id ? {...g, studentCount: e.target.value} : g))} 
+                          style={{width: "80px", padding: "0.4rem", opacity: isReadOnly ? 0.6 : 1}} 
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredGroups.length === 0 && <tr><td colSpan="4" className="text-center muted-copy">No groups found.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (screen === "lecturerAts") {
+      return (
+        <section className="page-grid">
+          <div className="panel panel-wide" style={{overflow: "visible"}}>
+            <div style={{ maxWidth: "400px", marginBottom: "2rem", zIndex: 50, position: "relative" }}>
+              <label className="field">
+                <span style={{color: "#fff", fontWeight: "600"}}>Search & Select Lecturer</span>
+                <AutocompleteSingleSelect 
+                  options={lecturers.map(l => l.name)}
+                  selected={selectedLecturer?.name}
+                  onChange={(val) => {
+                    const l = lecturers.find(x => x.name === val);
+                    setSelectedLecturerId(l ? l.id : null);
+                  }}
+                  placeholder="Type lecturer name..."
+                />
+              </label>
+            </div>
+
+            {selectedLecturer ? (
+              <div className="fade-in">
+                <div className="lecturer-header-card" style={{ marginBottom: "1rem" }}>
+                  <div>
+                    <h2 style={{margin: 0, color: "#fff"}}>{selectedLecturer.name}</h2>
+                    <p className="muted-copy" style={{margin: "0.2rem 0 0"}}>{selectedLecturer.position} • {(selectedLecturer.departments || []).join(", ")}</p>
+                  </div>
+                  <div className="metric-box">
+                    <span>Total ATS:</span>
+                    <strong>{getAtsTotal(selectedLecturer)}</strong>
+                  </div>
+                </div>
+
+                {!isReadOnly && (
+                  <div className="action-row">
+                    <button className="primary-button" onClick={() => setIsAddAtsModalOpen(true)}>+ Add ATS Entry</button>
+                  </div>
+                )}
+
+                <div className="table-wrapper" style={{ marginTop: "1rem" }}>
+                  <table className="data-table tight-inputs">
+                    <thead>
+                      <tr>
+                        <th>Course Codes</th>
+                        <th>Course Names</th>
+                        <th>Programs</th>
+                        <th>Groups (Students)</th>
+                        <th>KS</th>
+                        <th>K1</th>
+                        <th>K2</th>
+                        <th>K3</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(selectedLecturer.atsEntries || []).map(entry => (
+                        <tr key={entry.id}>
+                          <td><textarea readOnly value={(entry.courseCodes || []).join("\n")}></textarea></td>
+                          <td><textarea readOnly value={(entry.courseNames || []).join("\n")}></textarea></td>
+                          <td><textarea readOnly value={(entry.programs || []).join("\n")}></textarea></td>
+                          <td>
+                            <textarea readOnly value={(entry.groups || []).map(g => getGroupDisplay(g)).join("\n")}></textarea>
+                          </td>
+                          <td>{entry.ks}</td>
+                          <td>{entry.k1Supervision}</td>
+                          <td>{entry.k2Research}</td>
+                          <td>{entry.k3Service}</td>
+                        </tr>
+                      ))}
+                      {(!selectedLecturer.atsEntries || selectedLecturer.atsEntries.length === 0) && (
+                        <tr><td colSpan="8" className="text-center muted-copy">No ATS entries found.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div style={{ height: "300px", display: "flex", alignItems: "center", justifyContent: "center", border: "1px dashed #243250", borderRadius: "12px" }}>
+                <p className="muted-copy">Search and select a lecturer above to view their ATS details.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    if (screen === "settings") {
+      return (
+        <section className="page-grid">
+           <div className="panel panel-wide">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                  <h3>Admin Settings</h3>
+                  <p className="muted-copy">Manage core data, system globals, and permissions.</p>
+                </div>
+                <div className="tab-row" style={{ overflowX: "auto", whiteSpace: "nowrap" }}>
+                  <button className={`tab-button ${settingsTab === "general" ? "active" : ""}`} onClick={() => setSettingsTab("general")}>General / Mode</button>
+                  <button className={`tab-button ${settingsTab === "lecturers" ? "active" : ""}`} onClick={() => setSettingsTab("lecturers")}>Lecturers</button>
+                  <button className={`tab-button ${settingsTab === "courses" ? "active" : ""}`} onClick={() => setSettingsTab("courses")}>Courses</button>
+                  <button className={`tab-button ${settingsTab === "programs" ? "active" : ""}`} onClick={() => setSettingsTab("programs")}>Programs</button>
+                  <button className={`tab-button ${settingsTab === "groups" ? "active" : ""}`} onClick={() => setSettingsTab("groups")}>Groups</button>
+                </div>
+              </div>
+
+              {settingsTab === "general" && (
+                <div className="form-grid three-cols" style={{ padding: "1.5rem", border: "1px solid #243250", borderRadius: "14px"}}>
+                  <label className="field"><span>Faculty Name</span>
+                    <input type="text" value={globalInfo.faculty} onChange={e => setGlobalInfo({...globalInfo, faculty: e.target.value})} />
+                  </label>
+                  <label className="field"><span>Semester Config</span>
+                    <input type="text" value={globalInfo.semester} onChange={e => setGlobalInfo({...globalInfo, semester: e.target.value})} />
+                  </label>
+                  <label className="field"><span>Planner Mode</span>
+                    <select value={globalInfo.mode} onChange={e => setGlobalInfo({...globalInfo, mode: e.target.value})}>
+                      <option value="Draft">Draft (Editable by all roles)</option>
+                      <option value="Completed">Completed (Locked for non-admins)</option>
+                    </select>
+                    <small className="hint" style={{marginTop: "0.2rem"}}>Locks inputs when Complete.</small>
+                  </label>
+                </div>
+              )}
+
+              {settingsTab === "programs" && (
+                <div style={{ padding: "1.5rem", border: "1px solid #243250", borderRadius: "14px"}}>
+                  <h4>Manage Programs / Departments</h4>
+                  <p className="muted-copy" style={{fontSize: "0.85rem", marginBottom: "1rem"}}>Add new programs using the input below.</p>
+                  <div className="form-grid three-cols" style={{alignItems: "end"}}>
+                    <label className="field"><span>New Program Code</span>
+                      <input type="text" id="newProgInput" placeholder="e.g. MU333" />
+                    </label>
+                    <button className="primary-button compact" onClick={() => {
+                      const val = document.getElementById("newProgInput")?.value;
+                      if(val && !programsList.includes(val)) {
+                        setProgramsList([...programsList, val]);
+                        document.getElementById("newProgInput").value = "";
+                      }
+                    }}>Add Program</button>
+                  </div>
+                  <div className="table-wrapper">
+                    <table className="tight-table data-table" style={{width: "50%"}}>
+                      <thead><tr><th>Existing Programs</th></tr></thead>
+                      <tbody>
+                        {programsList.map(p => <tr key={p}><td>{p}</td></tr>)}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {settingsTab === "groups" && (
+                <div style={{ padding: "1.5rem", border: "1px solid #243250", borderRadius: "14px"}}>
+                   <h4>Add New Group</h4>
+                   <div className="form-grid three-cols" style={{marginTop: "1rem", alignItems: "end"}}>
+                     <label className="field"><span>Group Code</span>
+                       <input type="text" placeholder="e.g. MU110SEM1" />
+                     </label>
+                     <label className="field"><span>Program</span>
+                        <select>
+                          {programsList.map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                     </label>
+                     <button className="primary-button compact">Add Group</button>
+                   </div>
+                </div>
+              )}
+
+              {settingsTab === "lecturers" && (
+                <div>
+                  <button className="primary-button compact" onClick={() => openEditLecturer(null)}>+ Add New Lecturer</button>
+                  <div className="table-wrapper" style={{marginTop: "1rem"}}>
+                    <table className="data-table">
+                      <thead>
+                        <tr><th>Name</th><th>Department</th><th>Position</th><th>Min/Max ATS</th><th>Actions</th></tr>
+                      </thead>
+                      <tbody>
+                        {lecturers.map(l => (
+                          <tr key={l.id}>
+                            <td>{l.name}</td>
+                            <td>{(l.departments || []).join(", ")}</td>
+                            <td>{l.position}</td>
+                            <td>{l.minATS} - {l.maxATS}</td>
+                            <td>
+                              <button className="ghost-button compact" onClick={() => openEditLecturer(l)}>✏️ Edit</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {settingsTab === "courses" && (
+                <div>
+                  <button className="primary-button compact" onClick={() => openEditCourse(null)}>+ Add New Course</button>
+                  <div className="table-wrapper" style={{marginTop: "1rem"}}>
+                    <table className="data-table">
+                      <thead>
+                        <tr><th>Course Code</th><th>Course Name</th><th>Programs</th><th>Actions</th></tr>
+                      </thead>
+                      <tbody>
+                        {coursesList.map(c => (
+                          <tr key={c.id}>
+                            <td>{c.code}</td>
+                            <td>{c.name}</td>
+                            <td>{(c.programs || []).join(", ")}</td>
+                            <td>
+                              <button className="ghost-button compact" onClick={() => openEditCourse(c)}>✏️ Edit</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+           </div>
+        </section>
+      )
+    }
+
     return (
       <section className="page-grid">
         <div className="panel panel-wide">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Placeholder module</p>
-              <h3>Servicing Codes</h3>
-            </div>
-          </div>
-
-          <div className="tab-row secondary">
-            <button
-              type="button"
-              className={servicingSection === "diploma" ? "tab-button active" : "tab-button"}
-              onClick={() => setServicingSection("diploma")}
-            >
-              Diploma Servicing Codes
-            </button>
-
-            <button
-              type="button"
-              className={servicingSection === "degree" ? "tab-button active" : "tab-button"}
-              onClick={() => setServicingSection("degree")}
-            >
-              Degree Servicing Codes
-            </button>
-          </div>
-
-          <div className="empty-state-box">
-            {servicingSection === "diploma"
-              ? "Diploma Servicing Codes section added. Functionality will be added later."
-              : "Degree Servicing Codes section added. Functionality will be added later."}
-          </div>
+          <h3>{(screen || "").toUpperCase()}</h3>
+          <p className="muted-copy">This section is currently empty or under construction.</p>
         </div>
       </section>
     );
   }
 
-  return null;
-}
-
-function handleAddGroup() {
-  if (!selectedGroupDepartment || !newGroupName.trim()) return;
-
-  setGroups((current) => [
-    ...current,
-    {
-      id: `group-${Date.now()}`,
-      department: selectedGroupDepartment,
-      groupName: newGroupName.trim(),
-      studentCount: Number(newGroupStudentCount) || 0,
-    },
-  ]);
-
-  setNewGroupName("");
-  setNewGroupStudentCount("");
-}
-
-function handleUpdateGroupStudentCount(groupId, value) {
-  setGroups((current) =>
-    current.map((group) =>
-      group.id === groupId
-        ? { ...group, studentCount: Number(value) || 0 }
-        : group
-    )
-  );
-}
-
-function openAddAtsModal() {
-  setEditingAtsEntryId(null);
-  setAtsDraft(createBlankAtsEntry());
-  setIsAtsModalOpen(true);
-}
-
-function openEditAtsModal(entry) {
-  setEditingAtsEntryId(entry.id);
-  setAtsDraft({
-    ...entry,
-    courseCodes: [...(entry.courseCodes ?? [""])],
-    courseNames: [...(entry.courseNames ?? [""])],
-    programs: [...(entry.programs ?? [""])],
-    groups: [...(entry.groups ?? [])],
-    notes: entry.notes ?? "",
-  });
-  setIsAtsModalOpen(true);
-}
-
-function closeAtsModal() {
-  setIsAtsModalOpen(false);
-  setEditingAtsEntryId(null);
-  setAtsDraft(createBlankAtsEntry());
-}
-
-function updateAtsDraftField(field, value) {
-  setAtsDraft((current) => ({
-    ...current,
-    [field]: value,
-  }));
-}
-
-function updateAtsDraftListField(field, value) {
-  setAtsDraft((current) => ({
-    ...current,
-    [field]: value
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean),
-  }));
-}
-
-  function handleLogout() {
-  setCurrentUser(null);
-  setScreen("login");
-  setSelectedDepartment("All Departments");
-  setLecturerQuery("");
-  setSelectedLecturerId(null);
-  setSettingsSection("users");
-  setEditingLecturerId(null);
-  setIsAtsEditMode(false);
-  setIsAddAtsModalOpen(false);
-  setNewAtsDraft(createBlankAtsEntry());
-  setServicingSection("diploma");
-}
-
-  function openLecturer(lecturerId) {
-  setSelectedLecturerId(lecturerId);
-  setScreen("lecturer");
-  setIsAtsEditMode(false);
-  setIsAddAtsModalOpen(false);
-  setNewAtsDraft(createBlankAtsEntry());
-}
-function handleStartEditAts() {
-  if (!selectedLecturer || !canEditAtsEntries) return;
-  setIsAtsEditMode(true);
-}
-
-function handleSaveAtsChanges() {
-  setIsAtsEditMode(false);
-}
-
-function handleCancelAtsChanges() {
-  setIsAtsEditMode(false);
-}
-  function updateLecturerField(lecturerId, field, value) {
-    setLecturers((prev) =>
-      prev.map((lecturer) =>
-        lecturer.id === lecturerId ? { ...lecturer, [field]: value } : lecturer
-      )
-    );
-  }
-
-  function toggleLecturerDepartment(lecturerId, department) {
-    setLecturers((prev) =>
-      prev.map((lecturer) => {
-        if (lecturer.id !== lecturerId) return lecturer;
-        const exists = lecturer.departments.includes(department);
-        return {
-          ...lecturer,
-          departments: exists
-            ? lecturer.departments.filter((item) => item !== department)
-            : [...lecturer.departments, department],
-        };
-      })
-    );
-  }
-
-  function toggleDraftLecturerDepartment(department) {
-    setNewLecturerDraft((prev) => {
-      const exists = prev.departments.includes(department);
-      return {
-        ...prev,
-        departments: exists
-          ? prev.departments.filter((item) => item !== department)
-          : [...prev.departments, department],
-      };
-    });
-  }
-
-  function addNewLecturer() {
-    if (!newLecturerDraft.name.trim()) return;
-    setLecturers((prev) => [
-      ...prev,
-      {
-        ...newLecturerDraft,
-        name: newLecturerDraft.name.trim(),
-      },
-    ]);
-    setNewLecturerDraft(createBlankLecturer());
-  }
-
-  function addAtsRow(lecturerId) {
-    setLecturers((prev) =>
-      prev.map((lecturer) =>
-        lecturer.id === lecturerId
-          ? { ...lecturer, atsEntries: [...lecturer.atsEntries, createBlankAtsEntry()] }
-          : lecturer
-      )
-    );
-  }
-
-function openAddAtsModal() {
-  if (!selectedLecturer || !canEditAtsEntries) return;
-  setNewAtsDraft(createBlankAtsEntry());
-  setIsAddAtsModalOpen(true);
-}
-
-function closeAddAtsModal() {
-  setIsAddAtsModalOpen(false);
-  setNewAtsDraft(createBlankAtsEntry());
-}
-
-function updateNewAtsDraft(field, value) {
-  setNewAtsDraft((prev) => ({
-    ...prev,
-    [field]: value,
-  }));
-}
-
-function updateNewAtsDraftList(field, value) {
-  const items = value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  setNewAtsDraft((prev) => ({
-    ...prev,
-    [field]: items,
-  }));
-}
-
-function submitNewAtsEntry() {
-  if (!selectedLecturer || !canEditAtsEntries) return;
-
-  const hasCourseCode = newAtsDraft.courseCodes.length > 0;
-  const hasCourseName = newAtsDraft.courseNames.length > 0;
-
-  if (!hasCourseCode && !hasCourseName) return;
-
-  setLecturers((prev) =>
-    prev.map((lecturer) =>
-      lecturer.id === selectedLecturer.id
-        ? {
-            ...lecturer,
-            atsEntries: [...lecturer.atsEntries, newAtsDraft],
-          }
-        : lecturer
-    )
-  );
-
-  closeAddAtsModal();
-}
-
-  function removeAtsRow(lecturerId, entryId) {
-    setLecturers((prev) =>
-      prev.map((lecturer) =>
-        lecturer.id === lecturerId
-          ? {
-              ...lecturer,
-              atsEntries: lecturer.atsEntries.filter((entry) => entry.id !== entryId),
-            }
-          : lecturer
-      )
-    );
-  }
-
-  function updateAtsEntry(lecturerId, entryId, field, value) {
-    setLecturers((prev) =>
-      prev.map((lecturer) =>
-        lecturer.id === lecturerId
-          ? {
-              ...lecturer,
-              atsEntries: lecturer.atsEntries.map((entry) =>
-                entry.id === entryId ? { ...entry, [field]: value } : entry
-              ),
-            }
-          : lecturer
-      )
-    );
-  }
-
-  function updateAtsListField(lecturerId, entryId, field, value) {
-    const items = value
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    updateAtsEntry(lecturerId, entryId, field, items);
-  }
-
-  function getManageableRoleOptions() {
-    if (currentRole === "developer") {
-      return [
-        { key: "admin", label: "Admin" },
-        { key: "coordinator", label: "Program Coordinator" },
-        { key: "guest", label: "Guest" },
-      ];
-    }
-    if (currentRole === "admin") {
-      return [
-        { key: "coordinator", label: "Program Coordinator" },
-        { key: "guest", label: "Guest" },
-      ];
-    }
-    return [];
-  }
-
-  function canEditUserRole(roleKey) {
-    if (currentRole === "developer") {
-      return roleKey === "admin" || roleKey === "coordinator" || roleKey === "guest";
-    }
-    if (currentRole === "admin") {
-      return roleKey === "coordinator" || roleKey === "guest";
-    }
-    return false;
-  }
-
-  function handleUserRoleFilterChange(roleKey) {
-    setUserRoleFilter(roleKey);
-    setNewUserDraft(createBlankUser(roleKey));
-  }
-
-  function updateUser(roleKey, userId, field, value) {
-    setUsers((prev) => ({
-      ...prev,
-      [roleKey]: prev[roleKey].map((user) =>
-        user.id === userId ? { ...user, [field]: value } : user
-      ),
-    }));
-  }
-
-  function addUser() {
-    if (!canManageUsers) return;
-    if (!newUserDraft.username.trim() || !newUserDraft.password.trim()) return;
-
-    setUsers((prev) => ({
-      ...prev,
-      [userRoleFilter]: [
-        ...prev[userRoleFilter],
-        {
-          ...newUserDraft,
-          username: newUserDraft.username.trim(),
-          password: newUserDraft.password.trim(),
-        },
-      ],
-    }));
-
-    setNewUserDraft(createBlankUser(userRoleFilter));
-  }
-
-  function removeUser(roleKey, userId) {
-    setUsers((prev) => ({
-      ...prev,
-      [roleKey]: prev[roleKey].filter((user) => user.id !== userId),
-    }));
-  }
-
-  const manageableRoleOptions = getManageableRoleOptions();
-
-    if (screen === "login") {
+  // --- Wrappers ---
+  if (screen === "login") {
     return (
       <div className="app-shell login-shell">
         <div className="login-wrap">
           <div className="login-card">
             <div className="brand-block">
               <div className="brand-mark">ATS</div>
-
               <div className="brand-copy">
-                <p className="eyebrow">Faculty Workload Planner</p>
-                <h1>Teaching Load Dashboard</h1>
-                <p className="muted-copy">
-                  Sign in to manage lecturer ATS, review workload summaries, and update department-linked teaching assignments.
-                </p>
+                <h1>Lecturer Load Planner</h1>
+                <p className="muted-copy">Manage and optimize academic workloads.</p>
               </div>
             </div>
-
             <form className="login-form" onSubmit={handleLogin}>
-              <div className="role-switcher role-switcher-inline">
-                {LOGIN_ROLE_OPTIONS.map((role) => (
-                  <button
-                    key={role.key}
-                    type="button"
-                    className={selectedLoginRole === role.key ? "role-pill active" : "role-pill"}
-                    onClick={() => setSelectedLoginRole(role.key)}
-                  >
-                    {role.label}
-                  </button>
+              <div><h2 style={{ marginBottom: "0.2rem" }}>Welcome back</h2><p className="muted-copy">Select your role and sign in.</p></div>
+              <div className="role-switcher-inline">
+                {LOGIN_ROLE_OPTIONS.map(role => (
+                  <button key={role.key} type="button" className={`role-pill ${selectedLoginRole === role.key ? "active" : ""}`} onClick={() => setSelectedLoginRole(role.key)}>{role.label}</button>
                 ))}
               </div>
-
-              <label className="field">
-                <span>Username</span>
-                <input
-                  type="text"
-                  value={loginUsername}
-                  onChange={(e) => setLoginUsername(e.target.value)}
-                  placeholder="Enter username"
-                />
-              </label>
-
-              <label className="field">
-                <span>Password</span>
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="Enter password"
-                />
-              </label>
-
-              {loginError ? <p className="error-text">{loginError}</p> : null}
-
-              <button type="submit" className="primary-button login-submit">
-                Access Portal
-              </button>
-
-              <div className="login-hint">
-                <p>Demo accounts:</p>
-                <p>Admin: admin1 / 111</p>
-                <p>Program Coordinator: user1 / 111</p>
-                <p>Guest: guest1 / 111</p>
-              </div>
+              <label className="field"><span>Username</span><input type="text" value={loginUsername} onChange={e => setLoginUsername(e.target.value)} required /></label>
+              <label className="field"><span>Password</span><input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required /></label>
+              {loginError && <p className="error-text" style={{color: "#ff6384"}}>{loginError}</p>}
+              <button type="submit" className="primary-button login-submit">Sign In</button>
             </form>
-          </div>
-
-          <div className="login-meta">
-            <p>
-              Secure Access • Faculty ATS System <span>Version 1.0.0</span>
-            </p>
-            <strong>Created by YM Raja Mohamad Alif</strong>
           </div>
         </div>
       </div>
@@ -1130,1277 +933,20 @@ function submitNewAtsEntry() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-  <div className="sidebar-brand">
-    <div className="brand-mark small">ATS</div>
-    <div>
-      <p className="eyebrow">Music faculty</p>
-      <h2>Planner</h2>
-    </div>
-  </div>
-
-<nav className="sidebar-nav">
-  <button
-    className={screen === "dashboard" ? "nav-link active" : "nav-link"}
-    onClick={() => setScreen("dashboard")}
-  >
-    Dashboard
-  </button>
-
-  {selectedLecturer ? (
-    <button
-      className={screen === "lecturer" ? "nav-link active" : "nav-link"}
-      onClick={() => openLecturer(selectedLecturer.id)}
-    >
-      Lecturer ATS
-    </button>
-  ) : null}
-
-  <button
-    className={screen === "mufCodes" ? "nav-link active" : "nav-link"}
-    onClick={() => setScreen("mufCodes")}
-  >
-    MUF Codes
-  </button>
-
-  <button
-    className={screen === "performingGroups" ? "nav-link active" : "nav-link"}
-    onClick={() => setScreen("performingGroups")}
-  >
-    Performing Groups
-  </button>
-
-<button
-  className={screen === "groupInfo" ? "nav-link active" : "nav-link"}
-  onClick={() => setScreen("groupInfo")}
->
-  Group Info
-</button>
-
-  <button
-    className={screen === "servicingCodes" ? "nav-link active" : "nav-link"}
-    onClick={() => setScreen("servicingCodes")}
-  >
-    Servicing Codes
-  </button>
-
-  <button
-    className={screen === "forumColloquim" ? "nav-link active" : "nav-link"}
-    onClick={() => setScreen("forumColloquim")}
-  >
-    Forum/Colloquim
-  </button>
-</nav>
-</aside>
-
-      <main className="main-panel">
+      {renderSidebar()}
+      <div className="main-content" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
         <header className="topbar">
-          <div>
-            <p className="eyebrow">
-              {screen === "dashboard"
-                ? "Default dashboard"
-                : screen === "lecturer"
-                ? "Lecturer ATS detail"
-                : "Settings"}
-            </p>
-            <h1>
-  {screen === "dashboard"
-    ? "Faculty ATS Overview"
-    : screen === "lecturer"
-    ? selectedLecturer?.name
-    : screen === "settings"
-    ? "Settings"
-    : screen === "mufCodes"
-    ? "MUF Codes"
-    : screen === "performingGroups"
-    ? "Performing Groups"
-    : screen === "groupInfo"
-    ? "Group Info"
-    : screen === "servicingCodes"
-    ? "Servicing Codes"
-    : screen === "forumColloquim"
-    ? "Forum/Colloquim"
-    : "Faculty ATS Overview"}
-</h1>
+          <div className="topbar-info">
+            <h1>ATS Application - {(screen || "").charAt(0).toUpperCase() + (screen || "").slice(1).replace(/([A-Z])/g, ' $1')}</h1>
           </div>
-
-          <div className="topbar-actions topbar-actions-right">
-  {screen !== "dashboard" ? (
-    <button className="ghost-button" onClick={() => setScreen("dashboard")}>
-      Back to Dashboard
-    </button>
-  ) : null}
-
-  {canAccessSettings ? (
-    <button
-      className={screen === "settings" ? "icon-button active" : "icon-button"}
-      onClick={() => setScreen("settings")}
-      aria-label="Settings"
-      title="Settings"
-    >
-      ⚙
-    </button>
-  ) : null}
-
-  <div className="user-chip user-chip-top">
-    <span className="status-dot" />
-    <div>
-      <strong>{currentUser?.displayName}</strong>
-      <p>{currentUser?.username}</p>
-    </div>
-  </div>
-
-  <button className="ghost-button" onClick={handleLogout}>
-    Logout
-  </button>
-</div>
-
         </header>
-        
-{renderMainContent()}
-
-        {screen === "dashboard" ? (
-          <section className="page-grid">
-  <div className="panel panel-main">
-    <div className="panel-heading">
-      <div>
-        <p className="eyebrow">Lecturer actions</p>
-        <h3>Find a lecturer</h3>
+        <main style={{ padding: "1.5rem", overflowY: "auto", flex: 1, position: "relative" }}>
+          {renderMainContent()}
+        </main>
       </div>
-    </div>
-
-<div className="form-grid lecturer-picker-grid">
-  <label className="field">
-    <span>Department</span>
-    <select
-      value={selectedDepartment}
-      onChange={(e) => {
-        setSelectedDepartment(e.target.value);
-        setSelectedLecturerId(null);
-      }}
-    >
-      <option>All Departments</option>
-      {DEPARTMENTS.map((department) => (
-        <option key={department} value={department}>
-          {department}
-        </option>
-      ))}
-    </select>
-  </label>
-
-  <label className="field lecturer-search-field">
-    <span>Lecturer</span>
-    <input
-      type="text"
-      list="lecturer-suggestions"
-      value={lecturerQuery}
-      onChange={(e) => {
-        const value = e.target.value;
-        setLecturerQuery(value);
-
-        const matchedLecturer = filteredLecturers.find(
-          (lecturer) => lecturer.name.toLowerCase() === value.toLowerCase()
-        );
-
-        setSelectedLecturerId(matchedLecturer ? matchedLecturer.id : null);
-      }}
-      placeholder="Search or select lecturer"
-    />
-    <datalist id="lecturer-suggestions">
-      {filteredLecturers.map((lecturer) => (
-        <option key={lecturer.id} value={lecturer.name} />
-      ))}
-    </datalist>
-  </label>
-</div>
-
-    <div className="action-row">
-      <button
-        className="primary-button"
-        onClick={() => selectedLecturer && openLecturer(selectedLecturer.id)}
-        disabled={!selectedLecturer}
-      >
-        View Lecturer ATS
-      </button>
-    </div>
-
-    {selectedLecturer ? (
-      <div className="selected-preview compact-preview">
-        <div>
-          <p className="eyebrow">Selected lecturer</p>
-          <h3>{selectedLecturer.name}</h3>
-          <p className="muted-copy">{selectedLecturer.additionalInfo}</p>
-        </div>
-
-        <div className="tag-row">
-          {selectedLecturer.departments.map((department) => (
-            <span key={department} className="tag">
-              {department.split(" ")[0]}
-            </span>
-          ))}
-        </div>
-      </div>
-    ) : (
-      <div className="empty-state-box">
-        No lecturer selected yet.
-      </div>
-    )}
-  </div>
-
-            <div className="summary-grid">
-              <div className="stat-card">
-                <p className="eyebrow">Total lecturers</p>
-                <h2>{summary.totalLecturers}</h2>
-                <p className="muted-copy">Current seeded lecturer records.</p>
-              </div>
-              <div className="stat-card danger">
-                <p className="eyebrow">Above max ATS</p>
-                <h2>{summary.over}</h2>
-                <p className="muted-copy">Lecturers exceeding assigned ATS range.</p>
-              </div>
-              <div className="stat-card warning">
-                <p className="eyebrow">Below min ATS</p>
-                <h2>{summary.under}</h2>
-                <p className="muted-copy">Lecturers currently under minimum ATS.</p>
-              </div>
-              <div className="stat-card success">
-                <p className="eyebrow">Within ATS range</p>
-                <h2>{summary.within}</h2>
-                <p className="muted-copy">Lecturers balanced within min/max target.</p>
-              </div>
-            </div>
-
-            <div className="panel panel-wide">
-              <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">Faculty workload snapshot</p>
-                  <h3>Lecturer summary list</h3>
-                </div>
-              </div>
-
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Lecturer</th>
-                      <th>Departments</th>
-                      <th>Position</th>
-                      <th>Total ATS</th>
-                      <th>Range</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {flaggedLecturers.map((lecturer) => {
-                      const total = lecturer.totalATS;
-                      const status =
-                        total > lecturer.maxATS
-                          ? "Overload"
-                          : total < lecturer.minATS
-                          ? "Underload"
-                          : "Balanced";
-
-                      return (
-                        <tr
-                          key={lecturer.id}
-                          className="clickable-row"
-                          onClick={() => openLecturer(lecturer.id)}
-                        >
-                          <td>{lecturer.name}</td>
-                          <td>{lecturer.departments.map((department) => department.split(" ")[0]).join(" / ")}</td>
-                          <td>{lecturer.position}</td>
-                          <td>{total}</td>
-                          <td>
-                            {lecturer.minATS}–{lecturer.maxATS}
-                          </td>
-                          <td>
-                            <span
-                              className={
-                                status === "Overload"
-                                  ? "status-badge danger"
-                                  : status === "Underload"
-                                  ? "status-badge warning"
-                                  : "status-badge success"
-                              }
-                            >
-                              {status}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-{screen === "lecturer" && selectedLecturer ? (
-  <section className="page-grid lecturer-page">
-    <div className="panel panel-wide lecturer-summary-panel">
-      <div className="lecturer-header-card lecturer-header-compact">
-        <div className="lecturer-main-info">
-          <p className="eyebrow">Lecturer name</p>
-          <h2>{selectedLecturer.name}</h2>
-          <p className="muted-copy">{selectedLecturer.additionalInfo}</p>
-        </div>
-
-        <div className="header-metrics compact-metrics">
-          <div className="metric-box">
-            <span>Position</span>
-            <strong>{selectedLecturer.position}</strong>
-          </div>
-          <div className="metric-box">
-            <span>ATS range</span>
-            <strong>
-              {selectedLecturer.minATS}-{selectedLecturer.maxATS}
-            </strong>
-          </div>
-          <div className="metric-box">
-            <span>Total ATS</span>
-            <strong>{getAtsTotal(selectedLecturer)}</strong>
-          </div>
-        </div>
-      </div>
-
-      <div className="tag-row spaced">
-        {selectedLecturer.departments.map((department) => (
-          <span key={department} className="tag">
-            {department.split(" ")[0]}
-          </span>
-        ))}
-      </div>
-    </div>
-
-    <div className="panel panel-wide ats-panel">
-      <div className="panel-heading">
-        <div>
-          <p className="eyebrow">ATS workload table</p>
-          <h3>Lecturer ATS entries</h3>
-        </div>
-
-        <div className="ats-toolbar">
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={openAddAtsModal}
-          >
-            Add New
-          </button>
-
-          <button
-            type="button"
-            className={isAtsEditMode ? "ghost-button active" : "ghost-button"}
-            onClick={() => setIsAtsEditMode((prev) => !prev)}
-          >
-            {isAtsEditMode ? "Done Editing" : "Edit"}
-          </button>
-        </div>
-      </div>
-
-      <div className="table-wrap">
-        <table className="ats-table">
-          <thead>
-            <tr>
-              <th className="col-course-code">Course code(s)</th>
-              <th className="col-course-name">Course name(s)</th>
-              <th className="col-programs">Program(s)</th>
-              <th className="col-group">Group(s)</th>
-              <th className="col-contact-hours">Contact Hours</th>
-              <th className="col-small">KS</th>
-              <th className="col-small">K1</th>
-              <th className="col-small">K2</th>
-              <th className="col-small">K3</th>
-              <th className="col-notes">Notes</th>
-              {canEditAtsEntries && isAtsEditMode ? (
-                <th className="col-action">Action</th>
-              ) : null}
-            </tr>
-          </thead>
-
-          <tbody>
-            {selectedLecturer.atsEntries.map((entry) => (
-              <tr key={entry.id}>
-                <td>
-                  <textarea
-                    value={(entry.courseCodes ?? []).join(", ")}
-                    onChange={(e) =>
-                      updateAtsListField(
-                        selectedLecturer.id,
-                        entry.id,
-                        "courseCodes",
-                        e.target.value
-                      )
-                    }
-                    disabled={!(canEditAtsEntries && isAtsEditMode)}
-                  />
-                </td>
-
-                <td>
-                  <textarea
-                    value={(entry.courseNames ?? []).join(", ")}
-                    onChange={(e) =>
-                      updateAtsListField(
-                        selectedLecturer.id,
-                        entry.id,
-                        "courseNames",
-                        e.target.value
-                      )
-                    }
-                    disabled={!(canEditAtsEntries && isAtsEditMode)}
-                  />
-                </td>
-
-                <td>
-                  <textarea
-                    value={(entry.programs ?? []).join(", ")}
-                    onChange={(e) =>
-                      updateAtsListField(
-                        selectedLecturer.id,
-                        entry.id,
-                        "programs",
-                        e.target.value
-                      )
-                    }
-                    disabled={!(canEditAtsEntries && isAtsEditMode)}
-                  />
-                </td>
-
-                <td>
-                  <textarea
-                    value={(entry.groups ?? []).join(", ")}
-                    onChange={(e) =>
-                      updateAtsListField(
-                        selectedLecturer.id,
-                        entry.id,
-                        "groups",
-                        e.target.value
-                      )
-                    }
-                    disabled={!(canEditAtsEntries && isAtsEditMode)}
-                    placeholder="Example: MU221SEM1N"
-                  />
-                </td>
-
-                <td>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={entry.contactHours ?? ""}
-                    onChange={(e) =>
-                      updateAtsEntry(
-                        selectedLecturer.id,
-                        entry.id,
-                        "contactHours",
-                        e.target.value
-                      )
-                    }
-                    disabled={!(canEditAtsEntries && isAtsEditMode)}
-                  />
-                </td>
-
-                <td>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={entry.ks}
-                    onChange={(e) =>
-                      updateAtsEntry(
-                        selectedLecturer.id,
-                        entry.id,
-                        "ks",
-                        Number(e.target.value)
-                      )
-                    }
-                    disabled={!(canEditAtsEntries && isAtsEditMode)}
-                  />
-                </td>
-
-                <td>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={entry.k1Supervision}
-                    onChange={(e) =>
-                      updateAtsEntry(
-                        selectedLecturer.id,
-                        entry.id,
-                        "k1Supervision",
-                        Number(e.target.value)
-                      )
-                    }
-                    disabled={!(canEditAtsEntries && isAtsEditMode)}
-                  />
-                </td>
-
-                <td>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={entry.k2Research}
-                    onChange={(e) =>
-                      updateAtsEntry(
-                        selectedLecturer.id,
-                        entry.id,
-                        "k2Research",
-                        Number(e.target.value)
-                      )
-                    }
-                    disabled={!(canEditAtsEntries && isAtsEditMode)}
-                  />
-                </td>
-
-                <td>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={entry.k3Service}
-                    onChange={(e) =>
-                      updateAtsEntry(
-                        selectedLecturer.id,
-                        entry.id,
-                        "k3Service",
-                        Number(e.target.value)
-                      )
-                    }
-                    disabled={!(canEditAtsEntries && isAtsEditMode)}
-                  />
-                </td>
-
-                <td>
-                  <textarea
-                    value={entry.notes ?? ""}
-                    onChange={(e) =>
-                      updateAtsEntry(
-                        selectedLecturer.id,
-                        entry.id,
-                        "notes",
-                        e.target.value
-                      )
-                    }
-                    disabled={!(canEditAtsEntries && isAtsEditMode)}
-                  />
-                </td>
-
-                {canEditAtsEntries && isAtsEditMode ? (
-                  <td>
-                    <button
-                      className="danger-button compact"
-                      onClick={() => removeAtsRow(selectedLecturer.id, entry.id)}
-                    >
-                      Remove
-                    </button>
-                  </td>
-                ) : null}
-              </tr>
-            ))}
-          </tbody>
-
-          <tfoot>
-            <tr className="totals-row">
-              <td className="totals-label" colSpan={5}>
-                Totals
-              </td>
-              <td>
-                <div className="total-box">
-                  {selectedLecturer.atsEntries.reduce(
-                    (sum, entry) => sum + Number(entry.ks || 0),
-                    0
-                  )}
-                </div>
-              </td>
-              <td>
-                <div className="total-box">
-                  {selectedLecturer.atsEntries.reduce(
-                    (sum, entry) => sum + Number(entry.k1Supervision || 0),
-                    0
-                  )}
-                </div>
-              </td>
-              <td>
-                <div className="total-box">
-                  {selectedLecturer.atsEntries.reduce(
-                    (sum, entry) => sum + Number(entry.k2Research || 0),
-                    0
-                  )}
-                </div>
-              </td>
-              <td>
-                <div className="total-box">
-                  {selectedLecturer.atsEntries.reduce(
-                    (sum, entry) => sum + Number(entry.k3Service || 0),
-                    0
-                  )}
-                </div>
-              </td>
-              {canEditAtsEntries ? <td /> : null}
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      {canEditAtsEntries && isAtsEditMode ? (
-        <div className="action-row">
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => addAtsRow(selectedLecturer.id)}
-          >
-            Add ATS Row
-          </button>
-        </div>
-      ) : null}
-
-      {isAddAtsModalOpen ? (
-        <div className="modal-backdrop" onClick={closeAddAtsModal}>
-          <div
-            className="modal-card ats-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">New ATS entry</p>
-                <h3>Add lecturer ATS row</h3>
-              </div>
-
-              <button
-                type="button"
-                className="ghost-button compact"
-                onClick={closeAddAtsModal}
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="form-grid three-cols">
-              <label className="field">
-                <span>Course code(s)</span>
-                <input
-                  type="text"
-                  value={(newAtsDraft.courseCodes ?? []).join(", ")}
-                  onChange={(e) =>
-                    updateNewAtsDraftList("courseCodes", e.target.value)
-                  }
-                  placeholder="e.g. MUC2213, MUC2214"
-                />
-              </label>
-
-              <label className="field">
-                <span>Course name(s)</span>
-                <input
-                  type="text"
-                  value={(newAtsDraft.courseNames ?? []).join(", ")}
-                  onChange={(e) =>
-                    updateNewAtsDraftList("courseNames", e.target.value)
-                  }
-                  placeholder="e.g. Composition Techniques I"
-                />
-              </label>
-
-              <label className="field">
-                <span>Program(s)</span>
-                <input
-                  type="text"
-                  value={(newAtsDraft.programs ?? []).join(", ")}
-                  onChange={(e) =>
-                    updateNewAtsDraftList("programs", e.target.value)
-                  }
-                  placeholder="e.g. MU221 Bachelor in Music Composition"
-                />
-              </label>
-
-              <label className="field">
-                <span>Group(s)</span>
-                <input
-                  type="text"
-                  value={(newAtsDraft.groups ?? []).join(", ")}
-                  onChange={(e) =>
-                    updateNewAtsDraftList("groups", e.target.value)
-                  }
-                  placeholder="e.g. MU221SEM1N"
-                />
-              </label>
-
-              <label className="field">
-                <span>Contact Hours</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={newAtsDraft.contactHours ?? ""}
-                  onChange={(e) =>
-                    updateNewAtsDraft("contactHours", e.target.value)
-                  }
-                  placeholder="e.g. 2"
-                />
-              </label>
-            </div>
-
-            <div className="form-grid">
-              <label className="field">
-                <span>KS</span>
-                <input
-                  type="number"
-                  value={newAtsDraft.ks}
-                  onChange={(e) =>
-                    updateNewAtsDraft("ks", Number(e.target.value))
-                  }
-                />
-              </label>
-
-              <label className="field">
-                <span>K1</span>
-                <input
-                  type="number"
-                  value={newAtsDraft.k1Supervision}
-                  onChange={(e) =>
-                    updateNewAtsDraft(
-                      "k1Supervision",
-                      Number(e.target.value)
-                    )
-                  }
-                />
-              </label>
-
-              <label className="field">
-                <span>K2</span>
-                <input
-                  type="number"
-                  value={newAtsDraft.k2Research}
-                  onChange={(e) =>
-                    updateNewAtsDraft("k2Research", Number(e.target.value))
-                  }
-                />
-              </label>
-
-              <label className="field">
-                <span>K3</span>
-                <input
-                  type="number"
-                  value={newAtsDraft.k3Service}
-                  onChange={(e) =>
-                    updateNewAtsDraft("k3Service", Number(e.target.value))
-                  }
-                />
-              </label>
-            </div>
-
-            <label className="field">
-              <span>Notes</span>
-              <textarea
-                value={newAtsDraft.notes}
-                onChange={(e) =>
-                  updateNewAtsDraft("notes", e.target.value)
-                }
-                placeholder="Optional notes"
-              />
-            </label>
-
-            <div className="action-row">
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={closeAddAtsModal}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={submitNewAtsEntry}
-              >
-                Save ATS Entry
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  </section>
-) : null}
-
-        {screen === "settings" ? (
-          <section className="page-grid">
-            <div className="panel panel-wide">
-              <div className="tab-row">
-                <button
-                  className={settingsSection === "users" ? "tab-button active" : "tab-button"}
-                  onClick={() => setSettingsSection("users")}
-                >
-                  Users
-                </button>
-                <button
-                  className={settingsSection === "lecturers" ? "tab-button active" : "tab-button"}
-                  onClick={() => setSettingsSection("lecturers")}
-                >
-                  Lecturers
-                </button>
-              </div>
-            </div>
-
-            {settingsSection === "users" ? (
-              <div className="panel panel-wide">
-                <div className="panel-heading">
-                  <div>
-                    <p className="eyebrow">Role-based access</p>
-                    <h3>User management</h3>
-                  </div>
-                </div>
-
-                <div className="tab-row secondary">
-                  {manageableRoleOptions.length > 0 ? (
-                    manageableRoleOptions.map((role) => (
-                      <button
-                        key={role.key}
-                        className={
-                          userRoleFilter === role.key ? "tab-button active" : "tab-button"
-                        }
-                        onClick={() => handleUserRoleFilterChange(role.key)}
-                      >
-                        {role.label}
-                      </button>
-                    ))
-                  ) : (
-                    <p className="muted-copy">
-                      Program Coordinator can view settings but cannot manage users.
-                    </p>
-                  )}
-                </div>
-
-                {canManageUsers ? (
-                  <div className="inline-form">
-                    <input
-                      type="text"
-                      placeholder="Username"
-                      value={newUserDraft.username}
-                      onChange={(e) =>
-                        setNewUserDraft((prev) => ({ ...prev, username: e.target.value }))
-                      }
-                    />
-                    <input
-                      type="text"
-                      placeholder="Password"
-                      value={newUserDraft.password}
-                      onChange={(e) =>
-                        setNewUserDraft((prev) => ({ ...prev, password: e.target.value }))
-                      }
-                    />
-                    <button className="primary-button compact" onClick={addUser}>
-                      Add User
-                    </button>
-                  </div>
-                ) : null}
-{screen === "mufCodes" ? (
-  <section className="page-grid">
-    <div className="panel panel-wide">
-      <div className="panel-heading">
-        <div>
-          <p className="eyebrow">Placeholder module</p>
-          <h3>MUF Codes</h3>
-        </div>
-      </div>
-      <div className="empty-state-box">
-        MUF Codes page added. Functionality will be added later.
-      </div>
-    </div>
-  </section>
-) : null}
-
-{screen === "performingGroups" ? (
-  <section className="page-grid">
-    <div className="panel panel-wide">
-      <div className="panel-heading">
-        <div>
-          <p className="eyebrow">Placeholder module</p>
-          <h3>Performing Groups</h3>
-        </div>
-      </div>
-      <div className="empty-state-box">
-        Performing Groups page added. Functionality will be added later.
-      </div>
-    </div>
-  </section>
-) : null}
-
-{screen === "forumColloquim" ? (
-  <section className="page-grid">
-    <div className="panel panel-wide">
-      <div className="panel-heading">
-        <div>
-          <p className="eyebrow">Placeholder module</p>
-          <h3>Forum/Colloquim</h3>
-        </div>
-      </div>
-      <div className="empty-state-box">
-        Forum/Colloquim page added. Functionality will be added later.
-      </div>
-    </div>
-  </section>
-) : null}
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Role</th>
-                        <th>Username</th>
-                        <th>Password</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {["admin", "coordinator", "guest"].map((roleKey) =>
-  users[roleKey].map((user) => {
-    const editable = canEditUserRole(roleKey);
-    const canSeePassword =
-      currentRole === "developer" ||
-      (currentRole === "admin" && roleKey !== "admin") ||
-      (currentRole === "admin" && roleKey === "admin" && user.username === currentUser?.username);
-
-    return (
-      <tr key={user.id}>
-        <td>
-          {roleKey === "admin"
-            ? "Admin"
-            : roleKey === "coordinator"
-            ? "Program Coordinator"
-            : "Guest"}
-        </td>
-        <td>
-          <input
-            type="text"
-            value={user.username}
-            disabled={!editable}
-            onChange={(e) => updateUser(roleKey, user.id, "username", e.target.value)}
-          />
-        </td>
-        <td>
-          {canSeePassword ? (
-            <input
-              type="text"
-              value={user.password}
-              disabled={!editable}
-              onChange={(e) => updateUser(roleKey, user.id, "password", e.target.value)}
-            />
-          ) : (
-            <span className="read-only-pill">Hidden</span>
-          )}
-        </td>
-        <td>
-          {editable ? (
-            <button
-              className="danger-button compact"
-              onClick={() => removeUser(roleKey, user.id)}
-            >
-              Delete
-            </button>
-          ) : (
-            <span className="read-only-pill">Read only</span>
-          )}
-        </td>
-      </tr>
-    );
-  })
-)}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : null}
-
-            {settingsSection === "lecturers" ? (
-              <>
-                <div className="panel panel-wide">
-                  <div className="panel-heading">
-                    <div>
-                      <p className="eyebrow">Lecturer master data</p>
-                      <h3>Manage lecturer names, ATS ranges, and department tags</h3>
-                    </div>
-                  </div>
-
-                  {canAddLecturers ? (
-                    <div className="lecturer-editor add-editor">
-                      <div className="form-grid three-cols">
-                        <label className="field">
-                          <span>Lecturer name</span>
-                          <input
-                            type="text"
-                            value={newLecturerDraft.name}
-                            onChange={(e) =>
-                              setNewLecturerDraft((prev) => ({
-                                ...prev,
-                                name: e.target.value,
-                              }))
-                            }
-                          />
-                        </label>
-
-                        <label className="field">
-                          <span>Position</span>
-                          <select
-                            value={newLecturerDraft.position}
-                            onChange={(e) =>
-                              setNewLecturerDraft((prev) => ({
-                                ...prev,
-                                position: e.target.value,
-                              }))
-                            }
-                          >
-                            {POSITION_OPTIONS.map((option) => (
-                              <option key={option} value={option}>
-                                {option}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-
-                        <label className="field">
-                          <span>Additional info</span>
-                          <input
-                            type="text"
-                            value={newLecturerDraft.additionalInfo}
-                            onChange={(e) =>
-                              setNewLecturerDraft((prev) => ({
-                                ...prev,
-                                additionalInfo: e.target.value,
-                              }))
-                            }
-                          />
-                        </label>
-                      </div>
-
-                      <div className="form-grid">
-                        <label className="field">
-                          <span>Minimum ATS</span>
-                          <input
-                            type="number"
-                            value={newLecturerDraft.minATS}
-                            onChange={(e) =>
-                              setNewLecturerDraft((prev) => ({
-                                ...prev,
-                                minATS: Number(e.target.value),
-                              }))
-                            }
-                          />
-                        </label>
-
-                        <label className="field">
-                          <span>Maximum ATS</span>
-                          <input
-                            type="number"
-                            value={newLecturerDraft.maxATS}
-                            onChange={(e) =>
-                              setNewLecturerDraft((prev) => ({
-                                ...prev,
-                                maxATS: Number(e.target.value),
-                              }))
-                            }
-                          />
-                        </label>
-                      </div>
-
-                      <div className="department-picker">
-                        <p className="field-label">Department tags</p>
-                        <div className="tag-picker">
-                          {DEPARTMENTS.map((department) => (
-                            <button
-                              key={department}
-                              type="button"
-                              className={
-                                newLecturerDraft.departments.includes(department)
-                                  ? "tag-button active"
-                                  : "tag-button"
-                              }
-                              onClick={() => toggleDraftLecturerDepartment(department)}
-                            >
-                              {department}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <button className="primary-button compact" onClick={addNewLecturer}>
-                        Add Lecturer
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="muted-copy">
-                      Only Admin and Developer can edit lecturer records.
-                    </p>
-                  )}
-                </div>
-
-                <div className="panel panel-wide">
-                  <div className="lecturer-cards">
-                    {lecturers.map((lecturer) => {
-                      const isEditing = editingLecturerId === lecturer.id;
-                      const totalATS = getAtsTotal(lecturer);
-
-                      return (
-                        <div className="lecturer-editor" key={lecturer.id}>
-                          <div className="editor-header">
-                            <div>
-                              <p className="eyebrow">Lecturer record</p>
-                              <h3>{lecturer.name}</h3>
-                            </div>
-                            {canEditLecturers ? (
-                              <button
-                                className="ghost-button compact"
-                                onClick={() =>
-                                  setEditingLecturerId(isEditing ? null : lecturer.id)
-                                }
-                              >
-                                {isEditing ? "Close" : "✏ Edit"}
-                              </button>
-                            ) : (
-                              <span className="read-only-pill">Read only</span>
-                            )}
-                          </div>
-
-                          <div className="info-grid">
-                            <div>
-                              <span className="info-label">Position</span>
-                              <strong>{lecturer.position}</strong>
-                            </div>
-                            <div>
-                              <span className="info-label">ATS range</span>
-                              <strong>
-                                {lecturer.minATS}–{lecturer.maxATS}
-                              </strong>
-                            </div>
-                            <div>
-                              <span className="info-label">Total ATS</span>
-                              <strong>{totalATS}</strong>
-                            </div>
-                          </div>
-
-                          <div className="tag-row">
-                            {lecturer.departments.map((department) => (
-                              <span key={department} className="tag">
-                                {department}
-                              </span>
-                            ))}
-                          </div>
-
-                          {isEditing ? (
-                            <div className="editor-body">
-                              <div className="form-grid three-cols">
-                                <label className="field">
-                                  <span>Lecturer name</span>
-                                  <input
-                                    type="text"
-                                    value={lecturer.name}
-                                    onChange={(e) =>
-                                      updateLecturerField(lecturer.id, "name", e.target.value)
-                                    }
-                                  />
-                                </label>
-
-                                <label className="field">
-                                  <span>Position</span>
-                                  <select
-                                    value={lecturer.position}
-                                    onChange={(e) =>
-                                      updateLecturerField(lecturer.id, "position", e.target.value)
-                                    }
-                                  >
-                                    {POSITION_OPTIONS.map((option) => (
-                                      <option key={option} value={option}>
-                                        {option}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </label>
-
-                                <label className="field">
-                                  <span>Additional info</span>
-                                  <input
-                                    type="text"
-                                    value={lecturer.additionalInfo}
-                                    onChange={(e) =>
-                                      updateLecturerField(
-                                        lecturer.id,
-                                        "additionalInfo",
-                                        e.target.value
-                                      )
-                                    }
-                                  />
-                                </label>
-                              </div>
-
-                              <div className="form-grid">
-                                <label className="field">
-                                  <span>Minimum ATS</span>
-                                  <input
-                                    type="number"
-                                    value={lecturer.minATS}
-                                    onChange={(e) =>
-                                      updateLecturerField(
-                                        lecturer.id,
-                                        "minATS",
-                                        Number(e.target.value)
-                                      )
-                                    }
-                                  />
-                                </label>
-
-                                <label className="field">
-                                  <span>Maximum ATS</span>
-                                  <input
-                                    type="number"
-                                    value={lecturer.maxATS}
-                                    onChange={(e) =>
-                                      updateLecturerField(
-                                        lecturer.id,
-                                        "maxATS",
-                                        Number(e.target.value)
-                                      )
-                                    }
-                                  />
-                                </label>
-                              </div>
-
-                              <div className="department-picker">
-                                <p className="field-label">Department tags</p>
-                                <div className="tag-picker">
-                                  {DEPARTMENTS.map((department) => (
-                                    <button
-                                      key={department}
-                                      type="button"
-                                      className={
-                                        lecturer.departments.includes(department)
-                                          ? "tag-button active"
-                                          : "tag-button"
-                                      }
-                                      onClick={() =>
-                                        toggleLecturerDepartment(lecturer.id, department)
-                                      }
-                                    >
-                                      {department}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-            ) : null}
-          </section>
-        ) : null}
-      </main>
+      {renderAddAtsModal()}
+      {renderLecturerModal()}
+      {renderCourseModal()}
     </div>
   );
 }
-
-export default App;
