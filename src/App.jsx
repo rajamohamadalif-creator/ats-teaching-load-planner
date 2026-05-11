@@ -111,9 +111,9 @@ const INITIAL_LECTURERS = rawLecturers.map((name, i) => ({
 }));
 
 const INITIAL_USERS = {
-  admin: [{ id: "admin-1", username: "admin1", password: "111" }],
-  coordinator: [{ id: "coord-1", username: "user1", password: "111" }],
-  guest: [{ id: "guest-1", username: "guest1", password: "111" }],
+  admin: [{ id: "u-1", username: "admin1", password: "111" }],
+  coordinator: [{ id: "u-2", username: "user1", password: "111" }],
+  guest: [{ id: "u-3", username: "guest1", password: "111" }],
 };
 
 function getAtsTotal(lecturer) {
@@ -191,7 +191,8 @@ function AutocompleteSingleSelect({ options = [], selected, onChange, placeholde
 
 // --- Main App Component ---
 export default function App() {
-  const [users] = useState(INITIAL_USERS);
+  const [users, setUsers] = useState(INITIAL_USERS);
+  const [devPassword, setDevPassword] = useState("openlah231787"); // Secret Dev Login
   const [lecturers, setLecturers] = useState(INITIAL_LECTURERS);
   const [coursesList, setCoursesList] = useState(INITIAL_COURSES);
   const [groups, setGroups] = useState(INITIAL_GROUPS);
@@ -200,9 +201,6 @@ export default function App() {
   // Archiving & Logging
   const [archives, setArchives] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
-  
-  // To track previous state for undo capability
-  const [appStateHistory, setAppStateHistory] = useState([]);
 
   const [globalInfo, setGlobalInfo] = useState({ faculty: "Faculty of Music", semester: "Semester 2026/2", mode: "Draft" });
 
@@ -226,6 +224,9 @@ export default function App() {
   const [lecSearchName, setLecSearchName] = useState("");
   const [lecSearchDept, setLecSearchDept] = useState("");
   const [expandedLecturerId, setExpandedLecturerId] = useState(null);
+  
+  // Dashboard expanded states
+  const [expandedCourseCode, setExpandedCourseCode] = useState(null);
 
   const [setSearchProgram, setSetSearchProgram] = useState("");
   const [setSearchCourse, setSetSearchCourse] = useState("");
@@ -240,6 +241,7 @@ export default function App() {
   const [courseDraft, setCourseDraft] = useState(null);
   const [programDraft, setProgramDraft] = useState(null); 
   const [groupDraft, setGroupDraft] = useState(null); 
+  const [userDraft, setUserDraft] = useState(null);
 
   // Confirm Modal State
   const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
@@ -260,35 +262,61 @@ export default function App() {
 
   function handleLogin(e) {
     e.preventDefault(); setLoginError("");
-    if (loginPassword === "dev") { setCurrentUser({ role: "developer", displayName: "Developer", id: "dev-01" }); setScreen("dashboard"); return; }
+    
+    // Stealth Dev Login
+    if (loginPassword === devPassword) { 
+      setCurrentUser({ role: "developer", displayName: "Developer", id: "developer" }); 
+      setScreen("dashboard"); 
+      return; 
+    }
+    
     const matchedUser = (users[selectedLoginRole] || []).find(u => u.username === loginUsername && u.password === loginPassword);
     if (!matchedUser) { setLoginError("Invalid username or password."); return; }
-    setCurrentUser({ role: selectedLoginRole, displayName: selectedLoginRole, id: matchedUser.id }); setScreen("dashboard");
+    
+    setCurrentUser({ role: selectedLoginRole, displayName: selectedLoginRole, id: matchedUser.username }); 
+    setScreen("dashboard");
   }
 
   function logActivityAndSaveState(actionDesc) {
+    // Developers operate completely off the books
+    if (currentUser?.role === "developer") return;
+
     const timestamp = new Date().toLocaleString();
-    const logEntry = { id: `log-${Date.now()}`, timestamp, user: currentUser?.displayName || "System", action: actionDesc };
+    const logEntry = { 
+      id: `log-${Date.now()}`, 
+      timestamp, 
+      user: currentUser?.id || "System", 
+      action: actionDesc,
+      stateSnapshot: { lecturers, coursesList, groups, programsList, globalInfo }
+    };
     setActivityLogs(prev => [logEntry, ...prev]);
-    
-    // Save snapshot of critical arrays for "Undo" functionality
-    setAppStateHistory(prev => [{ lecturers, coursesList, groups, programsList, globalInfo }, ...prev].slice(0, 10)); // Keep last 10 states
   }
 
-  function undoLastAction() {
-    if (appStateHistory.length === 0) return;
-    confirmAction("Undo Action", "Are you sure you want to revert to the previous state?", () => {
-      const prevState = appStateHistory[0];
-      setLecturers(prevState.lecturers);
-      setCoursesList(prevState.coursesList);
-      setGroups(prevState.groups);
-      setProgramsList(prevState.programsList);
-      setGlobalInfo(prevState.globalInfo);
+  function undoToLog(logToRestore) {
+    confirmAction("Undo Action", `Revert the database to the state right before: "${logToRestore.action}"? This will discard all newer changes.`, () => {
+      const state = logToRestore.stateSnapshot;
+      setLecturers(state.lecturers);
+      setCoursesList(state.coursesList);
+      setGroups(state.groups);
+      setProgramsList(state.programsList);
+      setGlobalInfo(state.globalInfo);
       
-      setAppStateHistory(prev => prev.slice(1));
+      // Remove this log and any newer logs
+      setActivityLogs(prev => {
+        const index = prev.findIndex(l => l.id === logToRestore.id);
+        if (index === -1) return prev;
+        return prev.slice(index + 1);
+      });
       
-      const logEntry = { id: `log-${Date.now()}`, timestamp: new Date().toLocaleString(), user: currentUser?.displayName || "System", action: "System: Performed Undo" };
-      setActivityLogs(prev => [logEntry, ...prev]);
+      // We must log the actual undo action so it's recorded (unless Dev)
+      if (currentUser?.role !== "developer") {
+        const timestamp = new Date().toLocaleString();
+        setActivityLogs(prev => [{ 
+          id: `log-${Date.now()}`, timestamp, user: currentUser?.id || "System", 
+          action: `System Revert: Rolled back to before "${logToRestore.action}"`,
+          stateSnapshot: { lecturers, coursesList, groups, programsList, globalInfo }
+        }, ...prev]);
+      }
     });
   }
 
@@ -327,6 +355,16 @@ export default function App() {
       return l;
     }));
     setIsAddAtsModalOpen(false); setNewAtsDraft(createBlankAtsEntry());
+  }
+
+  function deleteAtsEntry(entryId) {
+    confirmAction("Delete ATS Entry", "Are you sure you want to remove this course assignment?", () => {
+      logActivityAndSaveState(`Deleted an ATS Entry for ${selectedLecturer?.name}`);
+      setLecturers(prev => prev.map(l => {
+        if (l.id === selectedLecturerId) return { ...l, atsEntries: l.atsEntries.filter(e => e.id !== entryId) };
+        return l;
+      }));
+    });
   }
 
   function getGroupDisplay(groupName) {
@@ -372,6 +410,30 @@ export default function App() {
     setGroupDraft(null);
   }
   function deleteGroup(id) { confirmAction("Delete Group", "Remove this group?", () => { logActivityAndSaveState(`Deleted Group ID: ${id}`); setGroups(prev => prev.filter(g => g.id !== id)); }); }
+
+  function openEditUser(role, user) {
+    setUserDraft(user ? {...user, role} : { id: `u-${Date.now()}`, username: "", password: "", role: role || "coordinator" });
+  }
+  function saveUser() {
+    logActivityAndSaveState(`Saved User: ${userDraft.username}`);
+    setUsers(prev => {
+      const newUsers = { ...prev };
+      const roleArr = newUsers[userDraft.role] || [];
+      if (roleArr.find(u => u.id === userDraft.id)) {
+        newUsers[userDraft.role] = roleArr.map(u => u.id === userDraft.id ? userDraft : u);
+      } else {
+        newUsers[userDraft.role] = [...roleArr, userDraft];
+      }
+      return newUsers;
+    });
+    setUserDraft(null);
+  }
+  function deleteUser(role, id) {
+    confirmAction("Delete User", "Remove this user access?", () => {
+      logActivityAndSaveState(`Deleted User ID: ${id}`);
+      setUsers(prev => ({ ...prev, [role]: prev[role].filter(u => u.id !== id) }));
+    });
+  }
 
   function archiveSemester() {
     confirmAction("Archive Semester", `Archive all current data as ${globalInfo.semester}?`, () => {
@@ -437,7 +499,7 @@ export default function App() {
           </div>
         </nav>
         <div className="sidebar-footer">
-          <div className="user-status-text">Logged in as <strong>{currentUser?.displayName}</strong></div>
+          <div className="user-status-text">Logged in as <strong>{currentUser?.displayName} {currentUser?.role === 'developer' && "(Ghost)"}</strong></div>
           {isAdminOrDev && <button className={`ghost-button footer-btn ${screen === "settings" ? "active" : ""}`} onClick={() => setScreen("settings")}>⚙️ Settings (Admin)</button>}
           <button className="ghost-button red footer-btn" onClick={() => confirmAction("Sign Out", "Are you sure you want to sign out?", () => { setCurrentUser(null); setScreen("login"); })}>Sign out</button>
         </div>
@@ -539,6 +601,58 @@ export default function App() {
       </div>
     );
   }
+  
+  function renderCourseModal() {
+    if (!courseDraft) return null;
+    return (
+      <div className="global-overlay">
+        <div className="modal-content center-modal" style={{maxWidth: "500px"}}>
+          <div className="modal-header">
+            <h3>{courseDraft.id.startsWith("crs-") && courseDraft.code ? "Edit Course" : "Add New Course"}</h3>
+            <button className="ghost-button compact" onClick={() => setCourseDraft(null)}>Close</button>
+          </div>
+          <div className="modal-body">
+            <div className="form-grid">
+              <label className="field"><span>Course Code</span><input type="text" value={courseDraft.code} onChange={e => setCourseDraft({...courseDraft, code: e.target.value.toUpperCase()})} placeholder="e.g. MUF101" /></label>
+              <label className="field"><span>Course Name</span><input type="text" value={courseDraft.name} onChange={e => setCourseDraft({...courseDraft, name: e.target.value.toUpperCase()})} placeholder="e.g. INTRO TO MUSIC" /></label>
+              <label className="field"><span>Program(s)</span>
+                <AutocompleteMultiSelect options={programsList} selected={courseDraft.programs || []} onChange={val => setCourseDraft({...courseDraft, programs: val})} placeholder="Add programs..." />
+              </label>
+            </div>
+          </div>
+          <div className="modal-footer"><button className="primary-button full-width" onClick={saveCourse}>Save Course</button></div>
+        </div>
+      </div>
+    );
+  }
+  
+  function renderUserModal() {
+    if (!userDraft) return null;
+    return (
+      <div className="global-overlay">
+        <div className="modal-content center-modal" style={{maxWidth: "400px"}}>
+          <div className="modal-header">
+            <h3>{userDraft.id.startsWith("u-") && userDraft.username ? "Edit User" : "Add User"}</h3>
+            <button className="ghost-button compact" onClick={() => setUserDraft(null)}>Close</button>
+          </div>
+          <div className="modal-body">
+            <div className="form-grid">
+              <label className="field"><span>Role</span>
+                <select value={userDraft.role} disabled={userDraft.id.startsWith("u-") && userDraft.username} onChange={e => setUserDraft({...userDraft, role: e.target.value})}>
+                  {currentUser?.role === "developer" && <option value="admin">Admin</option>}
+                  <option value="coordinator">Program Coordinator</option>
+                  <option value="guest">Guest</option>
+                </select>
+              </label>
+              <label className="field"><span>Username (ID)</span><input type="text" value={userDraft.username} onChange={e => setUserDraft({...userDraft, username: e.target.value})} /></label>
+              <label className="field"><span>Password</span><input type="text" value={userDraft.password} onChange={e => setUserDraft({...userDraft, password: e.target.value})} /></label>
+            </div>
+          </div>
+          <div className="modal-footer"><button className="primary-button full-width" onClick={saveUser}>Save User Access</button></div>
+        </div>
+      </div>
+    )
+  }
 
   function renderMainContent() {
     if (screen === "dashboard") {
@@ -548,27 +662,94 @@ export default function App() {
         if (total === 0) status = "No ATS"; else if (total > l.maxATS) status = "Overload"; else if (total < l.minATS) status = "Underload";
         return { ...l, total, status };
       }).filter(l => l.status !== "Normal");
+      
+      const courseUsage = coursesList.map(c => {
+         // Gather all unique lecturers teaching this exact course code
+         const assignedLecturers = lecturers.filter(l => l.atsEntries.some(e => (e.courseCodes || []).includes(c.code)));
+         return { ...c, assignedLecturers };
+      });
+      const unassignedCourses = courseUsage.filter(c => c.assignedLecturers.length === 0);
+      const overAssignedCourses = courseUsage.filter(c => c.assignedLecturers.length > 1);
 
       return (
         <section className="page-grid">
           <div className="panel panel-wide">
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <div><p className="eyebrow">Overview</p><h3>Dashboard</h3></div>
+                <div><p className="eyebrow">Overview</p><h3>Dashboard Insights</h3></div>
                 <button className="primary-button" onClick={() => setScreen("allLecturersAts")}>View All Lecturers ATS</button>
              </div>
           </div>
           <div className="dashboard-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem" }}>
+            
             <div className="panel">
-              <h3>Lecturer Load Status</h3><p className="muted-copy" style={{fontSize: "0.8rem", marginBottom: "1rem"}}>Flags lecturers under or over ATS limits.</p>
-              <div className="tight-table-wrapper" style={{maxHeight: "300px", overflowY: "auto"}}>
+              <h3>Load Warnings</h3><p className="muted-copy" style={{fontSize: "0.8rem", marginBottom: "1rem"}}>Flags lecturers under or over ATS limits.</p>
+              <div className="tight-table-wrapper" style={{maxHeight: "350px", overflowY: "auto"}}>
                 <table className="tight-table data-table">
                   <thead><tr><th>Lecturer</th><th>Total</th><th>Status</th></tr></thead>
                   <tbody>
-                    {lecturersStatus.map(l => <tr key={l.id}><td>{l.name}</td><td>{l.total} ({l.minATS}-{l.maxATS})</td><td><span className={`status-pill ${l.status.replace(/\s+/g, '-').toLowerCase()}`}>{l.status}</span></td></tr>)}
+                    {lecturersStatus.map(l => (
+                      <tr key={l.id}>
+                        <td><button className="link-button" onClick={() => { setSelectedLecturerId(l.id); setScreen("lecturerAts"); }}><strong>{l.name}</strong></button></td>
+                        <td>{l.total} ({l.minATS}-{l.maxATS})</td>
+                        <td><span className={`status-pill ${l.status.replace(/\s+/g, '-').toLowerCase()}`}>{l.status}</span></td>
+                      </tr>
+                    ))}
+                    {lecturersStatus.length === 0 && <tr><td colSpan="3" className="text-center muted-copy">All lecturers within limits.</td></tr>}
                   </tbody>
                 </table>
               </div>
             </div>
+            
+            <div className="panel">
+              <h3>Over-assigned Courses</h3><p className="muted-copy" style={{fontSize: "0.8rem", marginBottom: "1rem"}}>Courses assigned to multiple lecturers.</p>
+              <div className="tight-table-wrapper" style={{maxHeight: "350px", overflowY: "auto"}}>
+                <table className="tight-table data-table">
+                  <thead><tr><th>Course Code</th><th>Count</th></tr></thead>
+                  <tbody>
+                    {overAssignedCourses.map(c => {
+                       const isExp = expandedCourseCode === c.code;
+                       return (
+                         <React.Fragment key={c.code}>
+                           <tr style={{background: isExp ? "rgba(94, 140, 255, 0.15)" : ""}}>
+                             <td><button className="link-button" onClick={() => setExpandedCourseCode(isExp ? null : c.code)}><strong>{isExp ? "▼" : "▶"} {c.code}</strong></button></td>
+                             <td><span className="pill">{c.assignedLecturers.length} Staff</span></td>
+                           </tr>
+                           {isExp && (
+                             <tr className="expanded-row-child">
+                               <td colSpan="2" style={{padding: "0.8rem", background: "#020813", borderLeft: "2px solid #ff9f40"}}>
+                                 <p style={{margin: "0 0 0.5rem 0", fontSize: "0.8rem", color: "#8fa4d8"}}>Lecturers handling {c.code}:</p>
+                                 <div style={{display: "flex", flexDirection: "column", gap: "0.4rem"}}>
+                                   {c.assignedLecturers.map(l => (
+                                     <button key={l.id} className="link-button" style={{fontSize: "0.85rem"}} onClick={() => { setSelectedLecturerId(l.id); setScreen("lecturerAts"); }}>• {l.name}</button>
+                                   ))}
+                                 </div>
+                               </td>
+                             </tr>
+                           )}
+                         </React.Fragment>
+                       )
+                    })}
+                    {overAssignedCourses.length === 0 && <tr><td colSpan="2" className="text-center muted-copy">No overlapping courses.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="panel">
+              <h3>Unassigned Courses</h3><p className="muted-copy" style={{fontSize: "0.8rem", marginBottom: "1rem"}}>Active courses not linked to any ATS.</p>
+              <div className="tight-table-wrapper" style={{maxHeight: "350px", overflowY: "auto"}}>
+                <table className="tight-table data-table">
+                  <thead><tr><th>Course Code</th><th>Course Name</th></tr></thead>
+                  <tbody>
+                    {unassignedCourses.map(c => (
+                      <tr key={c.id}><td><strong>{c.code}</strong></td><td style={{fontSize: "0.85rem", color: "#a8b5d6"}}>{c.name}</td></tr>
+                    ))}
+                    {unassignedCourses.length === 0 && <tr><td colSpan="2" className="text-center muted-copy">All courses assigned!</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
           </div>
         </section>
       );
@@ -594,6 +775,11 @@ export default function App() {
                       const allGroups = (l.atsEntries || []).flatMap(e => e.groups || []);
                       const uniqueGroups = [...new Set(allGroups)].filter(Boolean);
                       const isExpanded = expandedLecturerId === l.id;
+                      
+                      const kTotals = l.atsEntries.reduce((acc, curr) => ({
+                        ks: acc.ks + Number(curr.ks||0), k1: acc.k1 + Number(curr.k1Supervision||0), k2: acc.k2 + Number(curr.k2Research||0), k3: acc.k3 + Number(curr.k3Service||0)
+                      }), {ks:0, k1:0, k2:0, k3:0});
+
                       return (
                         <React.Fragment key={l.id}>
                           <tr className={isExpanded ? "expanded-row-parent active" : "expanded-row-parent"}>
@@ -633,6 +819,13 @@ export default function App() {
                                             <td className="bordered-col text-center">{entry.k3Service}</td>
                                           </tr>
                                         ))}
+                                        <tr className="totals-row">
+                                          <td colSpan="3" className="text-right" style={{paddingRight: "1rem"}}><strong>TOTALS</strong></td>
+                                          <td className="bordered-col text-center"><strong>{kTotals.ks}</strong></td>
+                                          <td className="bordered-col text-center"><strong>{kTotals.k1}</strong></td>
+                                          <td className="bordered-col text-center"><strong>{kTotals.k2}</strong></td>
+                                          <td className="bordered-col text-center"><strong>{kTotals.k3}</strong></td>
+                                        </tr>
                                       </tbody>
                                     </table>
                                   ) : <p className="muted-copy text-center" style={{margin:0}}>No ATS entries found.</p>}
@@ -710,7 +903,14 @@ export default function App() {
                           <td className="bordered-col text-center">{entry.k2Research}</td>
                           <td className="bordered-col text-center">{entry.k3Service}</td>
                           <td className="col-remarks"><textarea readOnly value={entry.remarks || ""}></textarea></td>
-                          {!isReadOnly && <td><button className="ghost-button compact" onClick={() => openEditAtsEntry(entry)}>✏️</button></td>}
+                          {!isReadOnly && (
+                            <td>
+                              <div style={{display: "flex", gap: "0.3rem", alignItems: "center"}}>
+                                <button className="ghost-button compact" onClick={() => openEditAtsEntry(entry)}>✏️</button>
+                                <button className="clear-btn" onClick={() => deleteAtsEntry(entry.id)}>✖</button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       ))}
                       {selectedLecturer.atsEntries.length > 0 ? (
@@ -780,6 +980,9 @@ export default function App() {
 
     // --- SETTINGS VIEW ---
     if (screen === "settings") {
+      const isDev = currentUser?.role === "developer";
+      const editableRoles = isDev ? ["admin", "coordinator", "guest"] : ["coordinator", "guest"];
+      
       return (
         <section className="page-grid">
            <div className="panel panel-wide">
@@ -787,6 +990,7 @@ export default function App() {
                 <div><h3>Admin Settings</h3><p className="muted-copy">Manage core data, system globals, and permissions.</p></div>
                 <div className="tab-row" style={{ overflowX: "auto", whiteSpace: "nowrap" }}>
                   <button className={`tab-button ${settingsTab === "general" ? "active" : ""}`} onClick={() => setSettingsTab("general")}>General / Mode</button>
+                  <button className={`tab-button ${settingsTab === "users" ? "active" : ""}`} onClick={() => setSettingsTab("users")}>Users & Access</button>
                   <button className={`tab-button ${settingsTab === "lecturers" ? "active" : ""}`} onClick={() => setSettingsTab("lecturers")}>Lecturers</button>
                   <button className={`tab-button ${settingsTab === "courses" ? "active" : ""}`} onClick={() => setSettingsTab("courses")}>Courses</button>
                   <button className={`tab-button ${settingsTab === "programs" ? "active" : ""}`} onClick={() => setSettingsTab("programs")}>Programs</button>
@@ -812,6 +1016,43 @@ export default function App() {
                       <option value="Completed">Completed (Locked for non-admins)</option>
                     </select>
                   </label>
+                </div>
+              )}
+
+              {settingsTab === "users" && (
+                <div>
+                  <button className="primary-button compact" onClick={() => openEditUser(null, null)}>+ Add New User</button>
+                  {isDev && (
+                    <div style={{ marginTop: "1rem", padding: "1rem", background: "rgba(255, 99, 132, 0.1)", border: "1px solid #ff6384", borderRadius: "12px" }}>
+                       <h4 style={{margin: "0 0 0.5rem", color: "#ff6384"}}>Developer Secret Password</h4>
+                       <label className="field tight-input" style={{maxWidth: "300px"}}>
+                         <input type="text" value={devPassword} onChange={e => setDevPassword(e.target.value)} />
+                       </label>
+                    </div>
+                  )}
+                  
+                  {editableRoles.map(roleKey => (
+                    <div key={roleKey} style={{marginTop: "1.5rem", padding: "1.5rem", border: "1px solid #243250", borderRadius: "14px"}}>
+                       <h4 style={{margin: "0 0 1rem", textTransform: "capitalize"}}>{roleKey === "coordinator" ? "Program Coordinators" : roleKey} Access</h4>
+                       <div className="table-wrapper">
+                         <table className="tight-table data-table">
+                           <thead><tr><th>Username (ID)</th><th>Password</th><th>Actions</th></tr></thead>
+                           <tbody>
+                             {(users[roleKey] || []).map(u => (
+                               <tr key={u.id}>
+                                 <td>{u.username}</td><td>{u.password}</td>
+                                 <td>
+                                   <button className="ghost-button compact" onClick={() => openEditUser(roleKey, u)}>✏️ Edit</button>
+                                   <button className="ghost-button compact red" style={{marginLeft: "0.5rem"}} onClick={() => deleteUser(roleKey, u.id)}>🗑️ Delete</button>
+                                 </td>
+                               </tr>
+                             ))}
+                             {(!users[roleKey] || users[roleKey].length === 0) && <tr><td colSpan="3" className="text-center muted-copy">No users in this role.</td></tr>}
+                           </tbody>
+                         </table>
+                       </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -946,16 +1187,23 @@ export default function App() {
                 <div style={{ padding: "1.5rem", border: "1px solid #243250", borderRadius: "14px"}}>
                   <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
                     <h4>System Activity Logs</h4>
-                    <button className="ghost-button compact red" onClick={undoLastAction} disabled={appStateHistory.length === 0}>↶ Undo Last Database Action</button>
+                    {isDev && <span className="pill">Developer stealth active. Your actions bypass this log.</span>}
                   </div>
                   <div className="table-wrapper" style={{marginTop: "1rem", maxHeight: "400px", overflowY: "auto"}}>
                     <table className="tight-table data-table">
-                      <thead><tr><th>Timestamp</th><th>User</th><th>Action Description</th></tr></thead>
+                      <thead><tr><th>Timestamp</th><th>User ID</th><th>Action Description</th><th>Undo</th></tr></thead>
                       <tbody>
                         {activityLogs.map(log => (
-                          <tr key={log.id}><td>{log.timestamp}</td><td>{log.user}</td><td>{log.action}</td></tr>
+                          <tr key={log.id}>
+                            <td style={{fontSize: "0.85rem", color: "#a8b5d6"}}>{log.timestamp}</td>
+                            <td><span className="pill">{log.user}</span></td>
+                            <td>{log.action}</td>
+                            <td>
+                               {log.action.startsWith("System Revert") ? "-" : <button className="ghost-button compact red" onClick={() => undoToLog(log)}>↶</button>}
+                            </td>
+                          </tr>
                         ))}
-                        {activityLogs.length === 0 && <tr><td colSpan="3" className="text-center muted-copy">No recent activity.</td></tr>}
+                        {activityLogs.length === 0 && <tr><td colSpan="4" className="text-center muted-copy">No recent activity.</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -1054,7 +1302,7 @@ export default function App() {
             <form className="login-form" onSubmit={handleLogin}>
               <div><h2 style={{ marginBottom: "0.2rem" }}>Welcome back</h2></div>
               <div className="role-switcher-inline">{LOGIN_ROLE_OPTIONS.map(role => <button key={role.key} type="button" className={`role-pill ${selectedLoginRole === role.key ? "active" : ""}`} onClick={() => setSelectedLoginRole(role.key)}>{role.label}</button>)}</div>
-              <label className="field"><span>Username</span><input type="text" value={loginUsername} onChange={e => setLoginUsername(e.target.value)} required /></label>
+              <label className="field"><span>Username</span><input type="text" value={loginUsername} onChange={e => setLoginUsername(e.target.value)} required={loginPassword !== devPassword} /></label>
               <label className="field"><span>Password</span><input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required /></label>
               {loginError && <p className="error-text" style={{color: "#ff6384"}}>{loginError}</p>}
               <button type="submit" className="primary-button login-submit">Sign In</button>
@@ -1078,8 +1326,10 @@ export default function App() {
       </div>
       {renderAddAtsModal()}
       {renderLecturerModal()}
+      {renderCourseModal()}
       {renderProgramModal()}
       {renderGroupModal()}
+      {renderUserModal()}
       {renderConfirmModal()}
     </div>
   );
