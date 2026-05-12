@@ -97,18 +97,37 @@ function extractSemester(g) {
   return "-";
 }
 
+// Pre-fill robust data for testing
 const INITIAL_COURSES = rawCourses.map((c, i) => {
   const [code, ...nameParts] = c.split(" - ");
-  return { id: `crs-${i+1}`, code: code.trim(), name: nameParts.join(" - ").trim(), programs: [] };
+  // Prefill a program randomly based on index
+  return { id: `crs-${i+1}`, code: code.trim(), name: nameParts.join(" - ").trim(), programs: [PROGRAM_CODES[i % PROGRAM_CODES.length]] };
 });
 
 const INITIAL_GROUPS = rawGroups.map((g, i) => ({
-  id: `grp-${i+1}`, department: getDeptFromGroup(g), groupName: g, studentCount: 0
+  // Prefill student count
+  id: `grp-${i+1}`, department: getDeptFromGroup(g), groupName: g, studentCount: 15 + (i % 15)
 }));
 
-const INITIAL_LECTURERS = rawLecturers.map((name, i) => ({
-  id: `lec-${i+1}`, name, departments: [], minATS: 16, maxATS: 18, position: "Lecturer", additionalInfo: "", remarks: "", atsEntries: []
-}));
+const INITIAL_LECTURERS = rawLecturers.map((name, i) => {
+  let depts = [DEPARTMENTS[i % DEPARTMENTS.length]];
+  let ats = [];
+  
+  // Create mock data scenarios
+  if (i === 0) { // Adee Arifin: Overload (>18)
+    ats = [{ id: "ats-test-1", courseCodes: ["CTU101", "MUB234"], courseNames: ["FUNDAMENTALS OF ISLAM", "MUSIC INDUSTRY MANAGEMENT"], programs: ["MU110"], groups: ["CAMU1101A"], contactHours: 8, ks: 8, k1Supervision: 4, k2Research: 4, k3Service: 5, notes: "", remarks: "" }];
+  } else if (i === 1) { // Ahmad Munir: Underload (<16 but >0)
+    ats = [{ id: "ats-test-2", courseCodes: ["CTU152"], courseNames: ["VALUES AND CIVILIZATION"], programs: ["MU111"], groups: ["CAMU1101B"], contactHours: 4, ks: 4, k1Supervision: 2, k2Research: 2, k3Service: 2, notes: "", remarks: "" }];
+  } else if (i === 2) { // Ahmad Rithaudin: Normal (16-18)
+    ats = [{ id: "ats-test-3", courseCodes: ["ENT311"], courseNames: ["ESSENTIALS OF ENTREPRENEURSHIP"], programs: ["MU220"], groups: ["CAMU1102A"], contactHours: 8, ks: 8, k1Supervision: 4, k2Research: 3, k3Service: 1, notes: "", remarks: "" }];
+  } else if (i === 3) { // Ainolnaim: Normal, but shares ENT311 (Creating an Over-assigned Course)
+    ats = [{ id: "ats-test-4", courseCodes: ["ENT311"], courseNames: ["ESSENTIALS OF ENTREPRENEURSHIP"], programs: ["MU220"], groups: ["CAMU1102B"], contactHours: 8, ks: 8, k1Supervision: 4, k2Research: 3, k3Service: 1, notes: "", remarks: "" }];
+  }
+  // i === 4 (Alia Farahin) will have no ATS (No ATS scenario)
+  // Many courses will have 0 lecturers (Unassigned scenario)
+
+  return { id: `lec-${i+1}`, name, departments: depts, minATS: 16, maxATS: 18, position: "Lecturer", additionalInfo: "", remarks: "", atsEntries: ats };
+});
 
 const INITIAL_USERS = {
   admin: [{ id: "u-1", username: "admin1", password: "111" }],
@@ -277,7 +296,7 @@ export default function App() {
     setScreen("dashboard");
   }
 
-  function logActivityAndSaveState(actionDesc) {
+  function logActivity(actionDesc, undoData) {
     // Developers operate completely off the books
     if (currentUser?.role === "developer") return;
 
@@ -287,36 +306,39 @@ export default function App() {
       timestamp, 
       user: currentUser?.id || "System", 
       action: actionDesc,
-      stateSnapshot: { lecturers, coursesList, groups, programsList, globalInfo }
+      undoData
     };
     setActivityLogs(prev => [logEntry, ...prev]);
   }
 
   function undoToLog(logToRestore) {
-    confirmAction("Undo Action", `Revert the database to the state right before: "${logToRestore.action}"? This will discard all newer changes.`, () => {
-      const state = logToRestore.stateSnapshot;
-      setLecturers(state.lecturers);
-      setCoursesList(state.coursesList);
-      setGroups(state.groups);
-      setProgramsList(state.programsList);
-      setGlobalInfo(state.globalInfo);
-      
-      // Remove this log and any newer logs
-      setActivityLogs(prev => {
-        const index = prev.findIndex(l => l.id === logToRestore.id);
-        if (index === -1) return prev;
-        return prev.slice(index + 1);
-      });
-      
-      // We must log the actual undo action so it's recorded (unless Dev)
-      if (currentUser?.role !== "developer") {
-        const timestamp = new Date().toLocaleString();
-        setActivityLogs(prev => [{ 
-          id: `log-${Date.now()}`, timestamp, user: currentUser?.id || "System", 
-          action: `System Revert: Rolled back to before "${logToRestore.action}"`,
-          stateSnapshot: { lecturers, coursesList, groups, programsList, globalInfo }
-        }, ...prev]);
+    confirmAction("Undo Action", `Undo: "${logToRestore.action}"?`, () => {
+      const undo = logToRestore.undoData;
+      if (!undo) return; // Legacy safety
+
+      // Target-specific state reversal
+      if (undo.target === 'lecturers') {
+        if(undo.prev) setLecturers(prev => prev.find(l => l.id === undo.id) ? prev.map(l => l.id === undo.id ? undo.prev : l) : [...prev, undo.prev]);
+        else setLecturers(prev => prev.filter(l => l.id !== undo.id));
+      } else if (undo.target === 'courses') {
+        if(undo.prev) setCoursesList(prev => prev.find(c => c.id === undo.id) ? prev.map(c => c.id === undo.id ? undo.prev : c) : [...prev, undo.prev]);
+        else setCoursesList(prev => prev.filter(c => c.id !== undo.id));
+      } else if (undo.target === 'groups') {
+        if(undo.prev) setGroups(prev => prev.find(g => g.id === undo.id) ? prev.map(g => g.id === undo.id ? undo.prev : g) : [...prev, undo.prev]);
+        else setGroups(prev => prev.filter(g => g.id !== undo.id));
+      } else if (undo.target === 'programs') {
+        setProgramsList(prev => prev.map(p => p === undo.newName ? undo.oldName : p));
+      } else if (undo.target === 'programs_add') {
+        setProgramsList(prev => prev.filter(p => p !== undo.name));
+      } else if (undo.target === 'programs_delete') {
+        setProgramsList(prev => [...prev, undo.name]);
+      } else if (undo.target === 'users') {
+        if(undo.prev) setUsers(prev => ({ ...prev, [undo.role]: prev[undo.role].find(u => u.id === undo.id) ? prev[undo.role].map(u => u.id === undo.id ? undo.prev : u) : [...prev[undo.role], undo.prev] }));
+        else setUsers(prev => ({ ...prev, [undo.role]: prev[undo.role].filter(u => u.id !== undo.id) }));
       }
+
+      // Remove just this specific log
+      setActivityLogs(prev => prev.filter(l => l.id !== logToRestore.id));
     });
   }
 
@@ -345,7 +367,8 @@ export default function App() {
   }
 
   function saveAtsEntry() {
-    logActivityAndSaveState(`Updated ATS Entry for ${selectedLecturer?.name}`);
+    const prevLecturer = lecturers.find(l => l.id === selectedLecturerId);
+    logActivity(`Updated ATS Entry for ${selectedLecturer?.name}`, { target: 'lecturers', id: selectedLecturerId, prev: prevLecturer });
     setLecturers(prev => prev.map(l => {
       if (l.id === selectedLecturerId) {
         const exists = l.atsEntries.find(e => e.id === newAtsDraft.id);
@@ -359,7 +382,8 @@ export default function App() {
 
   function deleteAtsEntry(entryId) {
     confirmAction("Delete ATS Entry", "Are you sure you want to remove this course assignment?", () => {
-      logActivityAndSaveState(`Deleted an ATS Entry for ${selectedLecturer?.name}`);
+      const prevLecturer = lecturers.find(l => l.id === selectedLecturerId);
+      logActivity(`Deleted an ATS Entry for ${selectedLecturer?.name}`, { target: 'lecturers', id: selectedLecturerId, prev: prevLecturer });
       setLecturers(prev => prev.map(l => {
         if (l.id === selectedLecturerId) return { ...l, atsEntries: l.atsEntries.filter(e => e.id !== entryId) };
         return l;
@@ -376,61 +400,75 @@ export default function App() {
   // --- Setting Handlers ---
   function openEditLecturer(lecturer) { setLecturerDraft(lecturer ? {...lecturer} : { id: `lec-${Date.now()}`, name: "", departments: [], minATS: 16, maxATS: 18, position: "Lecturer", additionalInfo: "", remarks: "", atsEntries: [] }); }
   function saveLecturer() {
-    logActivityAndSaveState(`Saved Lecturer: ${lecturerDraft.name}`);
+    const prevObj = lecturers.find(l => l.id === lecturerDraft.id) || null;
+    logActivity(`Saved Lecturer: ${lecturerDraft.name}`, { target: 'lecturers', id: lecturerDraft.id, prev: prevObj });
     setLecturers(prev => prev.find(l => l.id === lecturerDraft.id) ? prev.map(l => l.id === lecturerDraft.id ? lecturerDraft : l) : [...prev, lecturerDraft]);
     setLecturerDraft(null);
   }
   function deleteLecturer(id) { 
     confirmAction("Delete Lecturer", "Are you sure? This will remove all their ATS records.", () => {
-      logActivityAndSaveState(`Deleted Lecturer ID: ${id}`);
+      const deletedObj = lecturers.find(l => l.id === id);
+      logActivity(`Deleted Lecturer: ${deletedObj?.name}`, { target: 'lecturers', id, prev: deletedObj });
       setLecturers(prev => prev.filter(l => l.id !== id))
     }); 
   }
 
   function openEditCourse(course) { setCourseDraft(course ? {...course} : { id: `crs-${Date.now()}`, code: "", name: "", programs: [] }); }
   function saveCourse() {
-    logActivityAndSaveState(`Saved Course: ${courseDraft.code}`);
+    const prevObj = coursesList.find(c => c.id === courseDraft.id) || null;
+    logActivity(`Saved Course: ${courseDraft.code}`, { target: 'courses', id: courseDraft.id, prev: prevObj });
     setCoursesList(prev => prev.find(c => c.id === courseDraft.id) ? prev.map(c => c.id === courseDraft.id ? courseDraft : c) : [...prev, courseDraft]);
     setCourseDraft(null);
   }
-  function deleteCourse(id) { confirmAction("Delete Course", "Are you sure you want to delete this course?", () => { logActivityAndSaveState(`Deleted Course ID: ${id}`); setCoursesList(prev => prev.filter(c => c.id !== id)); }); }
+  function deleteCourse(id) { confirmAction("Delete Course", "Are you sure you want to delete this course?", () => { 
+    const deletedObj = coursesList.find(c => c.id === id);
+    logActivity(`Deleted Course: ${deletedObj?.code}`, { target: 'courses', id, prev: deletedObj }); 
+    setCoursesList(prev => prev.filter(c => c.id !== id)); 
+  }); }
 
   function saveProgram() {
     if(!programDraft.newName) return;
-    logActivityAndSaveState(`Saved Program: ${programDraft.newName}`);
+    logActivity(`Renamed Program: ${programDraft.oldName} to ${programDraft.newName}`, { target: 'programs', oldName: programDraft.oldName, newName: programDraft.newName });
     setProgramsList(prev => prev.map(p => p === programDraft.oldName ? programDraft.newName : p));
     setProgramDraft(null);
   }
-  function deleteProgram(prog) { confirmAction("Delete Program", `Delete ${prog}?`, () => { logActivityAndSaveState(`Deleted Program: ${prog}`); setProgramsList(prev => prev.filter(p => p !== prog)); }); }
+  function deleteProgram(prog) { confirmAction("Delete Program", `Delete ${prog}?`, () => { 
+    logActivity(`Deleted Program: ${prog}`, { target: 'programs_delete', name: prog }); 
+    setProgramsList(prev => prev.filter(p => p !== prog)); 
+  }); }
 
   function openEditGroup(group) { setGroupDraft(group ? {...group} : { id: `grp-${Date.now()}`, department: programsList[0] || "", groupName: "", studentCount: 0 }); }
   function saveGroup() {
-    logActivityAndSaveState(`Saved Group: ${groupDraft.groupName}`);
+    const prevObj = groups.find(g => g.id === groupDraft.id) || null;
+    logActivity(`Saved Group: ${groupDraft.groupName}`, { target: 'groups', id: groupDraft.id, prev: prevObj });
     setGroups(prev => prev.find(g => g.id === groupDraft.id) ? prev.map(g => g.id === groupDraft.id ? groupDraft : g) : [...prev, groupDraft]);
     setGroupDraft(null);
   }
-  function deleteGroup(id) { confirmAction("Delete Group", "Remove this group?", () => { logActivityAndSaveState(`Deleted Group ID: ${id}`); setGroups(prev => prev.filter(g => g.id !== id)); }); }
+  function deleteGroup(id) { confirmAction("Delete Group", "Remove this group?", () => { 
+    const deletedObj = groups.find(g => g.id === id);
+    logActivity(`Deleted Group: ${deletedObj?.groupName}`, { target: 'groups', id, prev: deletedObj }); 
+    setGroups(prev => prev.filter(g => g.id !== id)); 
+  }); }
 
   function openEditUser(role, user) {
     setUserDraft(user ? {...user, role} : { id: `u-${Date.now()}`, username: "", password: "", role: role || "coordinator" });
   }
   function saveUser() {
-    logActivityAndSaveState(`Saved User: ${userDraft.username}`);
+    const prevObj = (users[userDraft.role]||[]).find(u => u.id === userDraft.id) || null;
+    logActivity(`Saved User: ${userDraft.username}`, { target: 'users', role: userDraft.role, id: userDraft.id, prev: prevObj });
     setUsers(prev => {
       const newUsers = { ...prev };
       const roleArr = newUsers[userDraft.role] || [];
-      if (roleArr.find(u => u.id === userDraft.id)) {
-        newUsers[userDraft.role] = roleArr.map(u => u.id === userDraft.id ? userDraft : u);
-      } else {
-        newUsers[userDraft.role] = [...roleArr, userDraft];
-      }
+      if (roleArr.find(u => u.id === userDraft.id)) newUsers[userDraft.role] = roleArr.map(u => u.id === userDraft.id ? userDraft : u);
+      else newUsers[userDraft.role] = [...roleArr, userDraft];
       return newUsers;
     });
     setUserDraft(null);
   }
   function deleteUser(role, id) {
     confirmAction("Delete User", "Remove this user access?", () => {
-      logActivityAndSaveState(`Deleted User ID: ${id}`);
+      const deletedObj = users[role].find(u => u.id === id);
+      logActivity(`Deleted User ID: ${id}`, { target: 'users', role, id, prev: deletedObj });
       setUsers(prev => ({ ...prev, [role]: prev[role].filter(u => u.id !== id) }));
     });
   }
@@ -444,13 +482,13 @@ export default function App() {
         data: { lecturers, coursesList, groups, programsList }
       };
       setArchives(prev => [snapshot, ...prev]);
-      logActivityAndSaveState(`Archived Semester: ${globalInfo.semester}`);
+      logActivity(`Archived Semester: ${globalInfo.semester}`, null);
     });
   }
 
   function loadArchive(arch) {
     confirmAction("Load Archive", `Load data from ${arch.semester}? Current unsaved changes will be overridden.`, () => {
-      logActivityAndSaveState(`Loaded Archive: ${arch.semester}`);
+      logActivity(`Loaded Archive: ${arch.semester}`, null); // Cannot targeted undo a full snapshot load
       setLecturers(arch.data.lecturers);
       setCoursesList(arch.data.coursesList);
       setGroups(arch.data.groups);
@@ -462,9 +500,25 @@ export default function App() {
   function deleteArchive(id) {
     confirmAction("Delete Archive", "Are you sure? This cannot be undone.", () => {
       setArchives(prev => prev.filter(a => a.id !== id));
-      logActivityAndSaveState(`Deleted Archive ID: ${id}`);
+      logActivity(`Deleted Archive ID: ${id}`, null);
     })
   }
+
+  // --- Data Crunching for Dashboards ---
+  const lecturersStatus = lecturers.map(l => {
+    const total = getAtsTotal(l);
+    let status = "Normal";
+    if (total === 0) status = "No ATS"; else if (total > l.maxATS) status = "Overload"; else if (total < l.minATS) status = "Underload";
+    return { ...l, total, status };
+  }).filter(l => l.status !== "Normal");
+  
+  const courseUsage = coursesList.map(c => {
+     const assignedLecturers = lecturers.filter(l => l.atsEntries.some(e => (e.courseCodes || []).includes(c.code)));
+     return { ...c, assignedLecturers };
+  });
+  
+  const unassignedCourses = courseUsage.filter(c => c.assignedLecturers.length === 0);
+  const overAssignedCourses = courseUsage.filter(c => c.assignedLecturers.length > 1);
 
   // --- Renders ---
   function renderSidebar() {
@@ -656,20 +710,11 @@ export default function App() {
 
   function renderMainContent() {
     if (screen === "dashboard") {
-      const lecturersStatus = lecturers.map(l => {
-        const total = getAtsTotal(l);
-        let status = "Normal";
-        if (total === 0) status = "No ATS"; else if (total > l.maxATS) status = "Overload"; else if (total < l.minATS) status = "Underload";
-        return { ...l, total, status };
-      }).filter(l => l.status !== "Normal");
-      
-      const courseUsage = coursesList.map(c => {
-         // Gather all unique lecturers teaching this exact course code
-         const assignedLecturers = lecturers.filter(l => l.atsEntries.some(e => (e.courseCodes || []).includes(c.code)));
-         return { ...c, assignedLecturers };
-      });
-      const unassignedCourses = courseUsage.filter(c => c.assignedLecturers.length === 0);
-      const overAssignedCourses = courseUsage.filter(c => c.assignedLecturers.length > 1);
+      const counts = {
+        overload: lecturersStatus.filter(l => l.status === "Overload").length,
+        underload: lecturersStatus.filter(l => l.status === "Underload").length,
+        noAts: lecturersStatus.filter(l => l.status === "No ATS").length
+      };
 
       return (
         <section className="page-grid">
@@ -679,32 +724,85 @@ export default function App() {
                 <button className="primary-button" onClick={() => setScreen("allLecturersAts")}>View All Lecturers ATS</button>
              </div>
           </div>
-          <div className="dashboard-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem" }}>
+          
+          <div className="dashboard-grid-stacked" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
             
-            <div className="panel">
-              <h3>Load Warnings</h3><p className="muted-copy" style={{fontSize: "0.8rem", marginBottom: "1rem"}}>Flags lecturers under or over ATS limits.</p>
-              <div className="tight-table-wrapper" style={{maxHeight: "350px", overflowY: "auto"}}>
+            <div className="panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div>
+                <h3 style={{margin: 0}}>Load Warnings</h3>
+                <p className="muted-copy" style={{fontSize: "0.9rem", margin: "0.2rem 0 0"}}>
+                  <strong>{counts.overload}</strong> Overload &nbsp;|&nbsp; <strong>{counts.underload}</strong> Underload &nbsp;|&nbsp; <strong>{counts.noAts}</strong> No ATS
+                </p>
+              </div>
+              <button className="ghost-button" onClick={() => setScreen("loadWarningsDetails")}>View Full Data</button>
+            </div>
+            
+            <div className="panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div>
+                <h3 style={{margin: 0}}>Over-assigned Courses</h3>
+                <p className="muted-copy" style={{fontSize: "0.9rem", margin: "0.2rem 0 0"}}>
+                  <strong>{overAssignedCourses.length}</strong> course(s) assigned to multiple lecturers.
+                </p>
+              </div>
+              <button className="ghost-button" onClick={() => setScreen("overAssignedDetails")}>View Full Data</button>
+            </div>
+
+            <div className="panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div>
+                <h3 style={{margin: 0}}>Unassigned Courses</h3>
+                <p className="muted-copy" style={{fontSize: "0.9rem", margin: "0.2rem 0 0"}}>
+                  <strong>{unassignedCourses.length}</strong> active course(s) not linked to any ATS.
+                </p>
+              </div>
+              <button className="ghost-button" onClick={() => setScreen("unassignedDetails")}>View Full Data</button>
+            </div>
+
+          </div>
+        </section>
+      );
+    }
+    
+    // --- Detailed Drill-Down Views ---
+    if (screen === "loadWarningsDetails") {
+      return (
+        <section className="page-grid">
+           <div className="panel panel-wide">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: "1rem"}}>
+                 <h3>Load Warnings - Full Data</h3>
+                 <button className="ghost-button compact" onClick={() => setScreen("dashboard")}>Back to Dashboard</button>
+              </div>
+              <div className="tight-table-wrapper" style={{overflowX: "auto"}}>
                 <table className="tight-table data-table">
-                  <thead><tr><th>Lecturer</th><th>Total</th><th>Status</th></tr></thead>
+                  <thead><tr><th>Lecturer</th><th>Total ATS</th><th>Limits</th><th>Status</th></tr></thead>
                   <tbody>
                     {lecturersStatus.map(l => (
                       <tr key={l.id}>
                         <td><button className="link-button" onClick={() => { setSelectedLecturerId(l.id); setScreen("lecturerAts"); }}><strong>{l.name}</strong></button></td>
-                        <td>{l.total} ({l.minATS}-{l.maxATS})</td>
+                        <td>{l.total}</td>
+                        <td>{l.minATS} - {l.maxATS}</td>
                         <td><span className={`status-pill ${l.status.replace(/\s+/g, '-').toLowerCase()}`}>{l.status}</span></td>
                       </tr>
                     ))}
-                    {lecturersStatus.length === 0 && <tr><td colSpan="3" className="text-center muted-copy">All lecturers within limits.</td></tr>}
+                    {lecturersStatus.length === 0 && <tr><td colSpan="4" className="text-center muted-copy">All lecturers within limits.</td></tr>}
                   </tbody>
                 </table>
               </div>
-            </div>
-            
-            <div className="panel">
-              <h3>Over-assigned Courses</h3><p className="muted-copy" style={{fontSize: "0.8rem", marginBottom: "1rem"}}>Courses assigned to multiple lecturers.</p>
-              <div className="tight-table-wrapper" style={{maxHeight: "350px", overflowY: "auto"}}>
+           </div>
+        </section>
+      );
+    }
+
+    if (screen === "overAssignedDetails") {
+      return (
+        <section className="page-grid">
+           <div className="panel panel-wide">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: "1rem"}}>
+                 <h3>Over-assigned Courses - Full Data</h3>
+                 <button className="ghost-button compact" onClick={() => setScreen("dashboard")}>Back to Dashboard</button>
+              </div>
+              <div className="tight-table-wrapper" style={{overflowX: "auto"}}>
                 <table className="tight-table data-table">
-                  <thead><tr><th>Course Code</th><th>Count</th></tr></thead>
+                  <thead><tr><th>Course Code</th><th>Course Name</th><th>Lecturers Assigned</th></tr></thead>
                   <tbody>
                     {overAssignedCourses.map(c => {
                        const isExp = expandedCourseCode === c.code;
@@ -712,11 +810,12 @@ export default function App() {
                          <React.Fragment key={c.code}>
                            <tr style={{background: isExp ? "rgba(94, 140, 255, 0.15)" : ""}}>
                              <td><button className="link-button" onClick={() => setExpandedCourseCode(isExp ? null : c.code)}><strong>{isExp ? "▼" : "▶"} {c.code}</strong></button></td>
+                             <td>{c.name}</td>
                              <td><span className="pill">{c.assignedLecturers.length} Staff</span></td>
                            </tr>
                            {isExp && (
                              <tr className="expanded-row-child">
-                               <td colSpan="2" style={{padding: "0.8rem", background: "#020813", borderLeft: "2px solid #ff9f40"}}>
+                               <td colSpan="3" style={{padding: "0.8rem", background: "#020813", borderLeft: "2px solid #ff9f40"}}>
                                  <p style={{margin: "0 0 0.5rem 0", fontSize: "0.8rem", color: "#8fa4d8"}}>Lecturers handling {c.code}:</p>
                                  <div style={{display: "flex", flexDirection: "column", gap: "0.4rem"}}>
                                    {c.assignedLecturers.map(l => (
@@ -729,28 +828,39 @@ export default function App() {
                          </React.Fragment>
                        )
                     })}
-                    {overAssignedCourses.length === 0 && <tr><td colSpan="2" className="text-center muted-copy">No overlapping courses.</td></tr>}
+                    {overAssignedCourses.length === 0 && <tr><td colSpan="3" className="text-center muted-copy">No overlapping courses.</td></tr>}
                   </tbody>
                 </table>
               </div>
-            </div>
+           </div>
+        </section>
+      );
+    }
 
-            <div className="panel">
-              <h3>Unassigned Courses</h3><p className="muted-copy" style={{fontSize: "0.8rem", marginBottom: "1rem"}}>Active courses not linked to any ATS.</p>
-              <div className="tight-table-wrapper" style={{maxHeight: "350px", overflowY: "auto"}}>
+    if (screen === "unassignedDetails") {
+      return (
+        <section className="page-grid">
+           <div className="panel panel-wide">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: "1rem"}}>
+                 <h3>Unassigned Courses - Full Data</h3>
+                 <button className="ghost-button compact" onClick={() => setScreen("dashboard")}>Back to Dashboard</button>
+              </div>
+              <div className="tight-table-wrapper" style={{overflowX: "auto"}}>
                 <table className="tight-table data-table">
-                  <thead><tr><th>Course Code</th><th>Course Name</th></tr></thead>
+                  <thead><tr><th>Course Code</th><th>Course Name</th><th>Programs</th></tr></thead>
                   <tbody>
                     {unassignedCourses.map(c => (
-                      <tr key={c.id}><td><strong>{c.code}</strong></td><td style={{fontSize: "0.85rem", color: "#a8b5d6"}}>{c.name}</td></tr>
+                      <tr key={c.id}>
+                        <td><strong>{c.code}</strong></td>
+                        <td>{c.name}</td>
+                        <td>{(c.programs||[]).join(", ")}</td>
+                      </tr>
                     ))}
-                    {unassignedCourses.length === 0 && <tr><td colSpan="2" className="text-center muted-copy">All courses assigned!</td></tr>}
+                    {unassignedCourses.length === 0 && <tr><td colSpan="3" className="text-center muted-copy">All courses assigned!</td></tr>}
                   </tbody>
                 </table>
               </div>
-            </div>
-
-          </div>
+           </div>
         </section>
       );
     }
@@ -1009,7 +1119,7 @@ export default function App() {
                         const newMode = e.target.value;
                         confirmAction("Change Mode", `Change planner mode to ${newMode}?`, () => {
                           setGlobalInfo(prev => ({...prev, mode: newMode}));
-                          logActivityAndSaveState(`Changed Planner Mode to ${newMode}`);
+                          logActivity(`Changed Planner Mode to ${newMode}`, null);
                         });
                       }}>
                       <option value="Draft">Draft (Editable by all roles)</option>
@@ -1062,7 +1172,7 @@ export default function App() {
                   <div className="form-grid three-cols" style={{alignItems: "end"}}>
                     <label className="field"><span>New Program Code</span><input type="text" id="newProgInput" placeholder="e.g. MU333" /></label>
                     <div style={{marginBottom: "1rem"}}>
-                      <button className="primary-button compact" onClick={() => { const val = document.getElementById("newProgInput")?.value; if(val && !programsList.includes(val)) { setProgramsList([...programsList, val]); logActivityAndSaveState(`Added new program: ${val}`); document.getElementById("newProgInput").value = ""; } }}>Add Program</button>
+                      <button className="primary-button compact" onClick={() => { const val = document.getElementById("newProgInput")?.value; if(val && !programsList.includes(val)) { setProgramsList([...programsList, val]); logActivity(`Added new program: ${val}`, { target: 'programs_add', name: val }); document.getElementById("newProgInput").value = ""; } }}>Add Program</button>
                     </div>
                   </div>
                   <div style={{marginTop: "1rem"}}>
@@ -1191,7 +1301,7 @@ export default function App() {
                   </div>
                   <div className="table-wrapper" style={{marginTop: "1rem", maxHeight: "400px", overflowY: "auto"}}>
                     <table className="tight-table data-table">
-                      <thead><tr><th>Timestamp</th><th>User ID</th><th>Action Description</th><th>Undo</th></tr></thead>
+                      <thead><tr><th>Timestamp</th><th>User ID</th><th>Action Description</th><th>Targeted Undo</th></tr></thead>
                       <tbody>
                         {activityLogs.map(log => (
                           <tr key={log.id}>
@@ -1199,7 +1309,7 @@ export default function App() {
                             <td><span className="pill">{log.user}</span></td>
                             <td>{log.action}</td>
                             <td>
-                               {log.action.startsWith("System Revert") ? "-" : <button className="ghost-button compact red" onClick={() => undoToLog(log)}>↶</button>}
+                               {log.undoData ? <button className="ghost-button compact red" onClick={() => undoToLog(log)}>↶ Undo</button> : <span className="muted-copy">-</span>}
                             </td>
                           </tr>
                         ))}
