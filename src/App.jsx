@@ -321,8 +321,8 @@ const INITIAL_LECTURERS = RAW_LECTURERS.map((name, i) => {
     id: `lec-${i + 1}`,
     name,
     departments: getDeptForLecturerIndex(i),
-    minATS: 16,
-    maxATS: 18,
+    minKS: 16,
+    maxKS: 18,
     position: "Lecturer",
     additionalInfo: "",
     remarks: "",
@@ -344,6 +344,7 @@ const INITIAL_COMMITTEES = COMMITTEE_CATEGORIES.flatMap((category) =>
     category,
     name,
     members: [],
+    isHidden: false,
   }))
 );
 
@@ -366,10 +367,10 @@ function getTotalKs(lecturer) {
 }
 
 function getLecturerStatus(lecturer) {
-  const total = getAtsTotal(lecturer);
-  if (total === 0) return "No ATS";
-  if (total > lecturer.maxATS) return "Overload";
-  if (total < lecturer.minATS) return "Underload";
+  const totalKS = getTotalKs(lecturer);
+  if (totalKS === 0) return "No KS";
+  if (totalKS > Number(lecturer.maxKS || 0)) return "Overload";
+  if (totalKS < Number(lecturer.minKS || 0)) return "Underload";
   return "Normal";
 }
 
@@ -394,8 +395,8 @@ function createBlankLecturer() {
     id: `lec-${Date.now()}`,
     name: "",
     departments: [],
-    minATS: 16,
-    maxATS: 18,
+    minKS: 16,
+    maxKS: 18,
     position: "Lecturer",
     additionalInfo: "",
     remarks: "",
@@ -435,6 +436,31 @@ function createBlankGroup() {
 function sortHiddenLast(a, b) {
   if (a.isHidden === b.isHidden) return 0;
   return a.isHidden ? 1 : -1;
+}
+
+function formatGroupLabel(groupName, groups) {
+  const group = groups.find((item) => item.groupName === groupName);
+  if (!group) return groupName;
+  return `${groupName} (${group.studentCount})`;
+}
+
+function getFormattedGroups(entryGroups = [], groups = []) {
+  return entryGroups.map((groupName) => formatGroupLabel(groupName, groups));
+}
+
+function splitCourseDisplayValues(values = []) {
+  const parsed = values.map((item) => {
+    const [code, ...nameParts] = item.split(" - ");
+    return {
+      code: (code || "").trim(),
+      name: nameParts.join(" - ").trim(),
+    };
+  });
+
+  return {
+    courseCodes: parsed.map((item) => item.code).filter(Boolean),
+    courseNames: parsed.map((item) => item.name).filter(Boolean),
+  };
 }
 
 function SearchableSingleSelect({
@@ -504,17 +530,21 @@ function SearchableSingleSelect({
   );
 }
 
-function MultiSelectChips({ options = [], selected = [], onChange, placeholder = "Search..." }) {
+function SearchableCourseMultiSelect({
+  options = [],
+  selected = [],
+  onChange,
+  placeholder = "Search course code/name...",
+}) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-
   const safeSelected = Array.isArray(selected) ? selected : [];
-  const filteredOptions = options.filter(
-    (item) =>
-      item &&
-      item.toLowerCase().includes(query.toLowerCase()) &&
-      !safeSelected.includes(item)
-  );
+
+  const filteredOptions = options.filter((item) => {
+    const haystack = item.toLowerCase();
+    const needle = query.toLowerCase().trim();
+    return haystack.includes(needle) && !safeSelected.includes(item);
+  });
 
   const addItem = (value) => {
     onChange([...safeSelected, value]);
@@ -530,7 +560,7 @@ function MultiSelectChips({ options = [], selected = [], onChange, placeholder =
     <div className="autocomplete-container">
       <div className="autocomplete-input-box" onClick={() => setIsOpen(true)}>
         {safeSelected.map((item) => (
-          <span className="chip" key={item}>
+          <span className="chip chip-course" key={item}>
             {item}
             <button
               type="button"
@@ -547,7 +577,10 @@ function MultiSelectChips({ options = [], selected = [], onChange, placeholder =
         <input
           className="autocomplete-input"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setIsOpen(true);
+          }}
           onFocus={() => setIsOpen(true)}
           onBlur={() => setTimeout(() => setIsOpen(false), 150)}
           placeholder={safeSelected.length ? "" : placeholder}
@@ -576,7 +609,8 @@ function MultiSelectChips({ options = [], selected = [], onChange, placeholder =
 export default function App() {
   const [users, setUsers] = useState(INITIAL_USERS);
   const [developerPassword, setDeveloperPassword] = useState(DEVELOPER_PASSWORD_DEFAULT);
-  const [developerPasswordDraft, setDeveloperPasswordDraft] = useState(DEVELOPER_PASSWORD_DEFAULT);
+  const [developerPasswordDraft, setDeveloperPasswordDraft] =
+    useState(DEVELOPER_PASSWORD_DEFAULT);
 
   const [lecturers, setLecturers] = useState(INITIAL_LECTURERS);
   const [coursesList, setCoursesList] = useState(INITIAL_COURSES);
@@ -611,6 +645,7 @@ export default function App() {
 
   const [isAddAtsModalOpen, setIsAddAtsModalOpen] = useState(false);
   const [newAtsDraft, setNewAtsDraft] = useState(createBlankAtsEntry());
+  const [selectedCourseDisplays, setSelectedCourseDisplays] = useState([]);
 
   const [lecSearchName, setLecSearchName] = useState("");
   const [lecSearchDept, setLecSearchDept] = useState("");
@@ -620,8 +655,10 @@ export default function App() {
   const [searchProgram, setSearchProgram] = useState("");
   const [searchCourse, setSearchCourse] = useState("");
   const [filterCourseDept, setFilterCourseDept] = useState("All");
+
   const [searchGroup, setSearchGroup] = useState("");
   const [filterGroupDept, setFilterGroupDept] = useState("All");
+
   const [searchLecturer, setSearchLecturer] = useState("");
   const [filterLecturerDept, setFilterLecturerDept] = useState("All");
 
@@ -633,11 +670,11 @@ export default function App() {
 
   const [manageCommitteeData, setManageCommitteeData] = useState(null);
   const [viewCommitteeData, setViewCommitteeData] = useState(null);
+  const [viewLecturerComsId, setViewLecturerComsId] = useState(null);
   const [newMemberDraft, setNewMemberDraft] = useState({
     lecturerName: "",
     position: "",
   });
-  const [viewLecturerComsId, setViewLecturerComsId] = useState(null);
 
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
@@ -654,7 +691,6 @@ export default function App() {
   const isAdmin = currentUser?.role === "admin";
   const isDeveloper = currentUser?.role === "developer";
   const canAccessSettings = isAdmin || isDeveloper;
-  const canSeeDeveloperControls = isDeveloper;
   const isReadOnly =
     (globalInfo.mode === "Completed" && !isAdmin && !isDeveloper) ||
     currentUser?.role === "guest";
@@ -670,10 +706,22 @@ export default function App() {
   const selectedLecturer =
     lecturers.find((lecturer) => lecturer.id === selectedLecturerId) || null;
 
-  const lecturersStatus = visibleLecturers
+  useEffect(() => {
+    if (!isAddAtsModalOpen) return;
+
+    const nextSelected = (newAtsDraft.courseCodes || []).map((code, index) => {
+      const course = visibleCourses.find((item) => item.code === code);
+      const fallbackName = newAtsDraft.courseNames?.[index] || "";
+      return `${code} - ${course?.name || fallbackName}`.trim();
+    });
+
+    setSelectedCourseDisplays(nextSelected);
+  }, [isAddAtsModalOpen, newAtsDraft, visibleCourses]);
+
+  const lecturerStatusList = visibleLecturers
     .map((lecturer) => ({
       ...lecturer,
-      total: getAtsTotal(lecturer),
+      totalKS: getTotalKs(lecturer),
       status: getLecturerStatus(lecturer),
     }))
     .filter((lecturer) => lecturer.status !== "Normal");
@@ -682,39 +730,48 @@ export default function App() {
     const assignedLecturers = visibleLecturers.filter((lecturer) =>
       lecturer.atsEntries.some((entry) => entry.courseCodes.includes(course.code))
     );
-    return { ...course, assignedLecturers };
+
+    return {
+      ...course,
+      assignedLecturers,
+    };
   });
 
   const unassignedCourses = courseUsage.filter(
     (course) => course.assignedLecturers.length === 0
   );
+
   const overAssignedCourses = courseUsage.filter(
     (course) => course.assignedLecturers.length > 1
   );
-
-  const logActivity = (action, undoData = null) => {
-    if (isDeveloper) return;
-
-    const entry = {
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toLocaleString(),
-      user: currentUser?.id || "System",
-      action,
-      undoData,
-    };
-    setActivityLogs((prev) => [entry, ...prev]);
-  };
 
   const confirmAction = (title, message, onConfirm) => {
     setConfirmConfig({
       isOpen: true,
       title,
       message,
-      onConfirm: () => {
-        if (onConfirm) onConfirm();
-        setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
-      },
+      onConfirm,
     });
+  };
+
+  const closeConfirm = () => {
+    setConfirmConfig({
+      isOpen: false,
+      title: "",
+      message: "",
+      onConfirm: null,
+    });
+  };
+
+  const logActivity = (action) => {
+    if (isDeveloper) return;
+    const entry = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toLocaleString(),
+      user: currentUser?.displayName || "System",
+      action,
+    };
+    setActivityLogs((prev) => [entry, ...prev]);
   };
 
   const handleLogin = (e) => {
@@ -747,15 +804,19 @@ export default function App() {
       displayName: matched.username,
       role: selectedLoginRole,
     });
+
     setScreen("dashboard");
     setLoginUsername("");
     setLoginPassword("");
   };
 
   const handleLogout = () => {
-    setCurrentUser(null);
-    setScreen("login");
-    setSelectedLecturerId(null);
+    confirmAction("Sign Out", "Are you sure you want to sign out?", () => {
+      setCurrentUser(null);
+      setScreen("login");
+      setSelectedLecturerId(null);
+      closeConfirm();
+    });
   };
 
   const getLecturerCommittees = (lecturerId) => {
@@ -774,14 +835,12 @@ export default function App() {
     return result;
   };
 
-  const handleAtsCourseCodesChange = (value) => {
-    const courseNames = value
-      .map((code) => visibleCourses.find((course) => course.code === code)?.name)
-      .filter(Boolean);
-
+  const handleAtsCourseCodesChange = (values) => {
+    const { courseCodes, courseNames } = splitCourseDisplayValues(values);
+    setSelectedCourseDisplays(values);
     setNewAtsDraft((prev) => ({
       ...prev,
-      courseCodes: value,
+      courseCodes,
       courseNames,
     }));
   };
@@ -793,8 +852,6 @@ export default function App() {
 
   const saveAtsEntry = () => {
     if (!selectedLecturerId) return;
-
-    const previous = lecturers.find((lecturer) => lecturer.id === selectedLecturerId);
 
     setLecturers((prev) =>
       prev.map((lecturer) => {
@@ -813,14 +870,10 @@ export default function App() {
       })
     );
 
-    logActivity(`Saved ATS Entry for ${selectedLecturer?.name}`, {
-      target: "lecturers",
-      id: selectedLecturerId,
-      prev: previous,
-    });
-
+    logActivity(`Saved ATS entry for ${selectedLecturer?.name}`);
     setIsAddAtsModalOpen(false);
     setNewAtsDraft(createBlankAtsEntry());
+    setSelectedCourseDisplays([]);
   };
 
   const deleteAtsEntry = (entryId) => {
@@ -828,8 +881,6 @@ export default function App() {
       "Delete ATS Entry",
       "Are you sure you want to delete this ATS record?",
       () => {
-        const previous = lecturers.find((lecturer) => lecturer.id === selectedLecturerId);
-
         setLecturers((prev) =>
           prev.map((lecturer) =>
             lecturer.id === selectedLecturerId
@@ -840,12 +891,8 @@ export default function App() {
               : lecturer
           )
         );
-
-        logActivity(`Deleted ATS Entry for ${selectedLecturer?.name}`, {
-          target: "lecturers",
-          id: selectedLecturerId,
-          prev: previous,
-        });
+        logActivity(`Deleted ATS entry for ${selectedLecturer?.name}`);
+        closeConfirm();
       }
     );
   };
@@ -857,45 +904,26 @@ export default function App() {
   const saveLecturer = () => {
     if (!lecturerDraft?.name?.trim()) return;
 
-    const previous = lecturers.find((item) => item.id === lecturerDraft.id) || null;
-
     setLecturers((prev) =>
       prev.some((item) => item.id === lecturerDraft.id)
         ? prev.map((item) => (item.id === lecturerDraft.id ? lecturerDraft : item))
         : [...prev, lecturerDraft]
     );
 
-    logActivity(`Saved Lecturer ${lecturerDraft.name}`, {
-      target: "lecturers",
-      id: lecturerDraft.id,
-      prev: previous,
-    });
-
     setLecturerDraft(null);
   };
 
   const deleteLecturer = (id) => {
-    confirmAction(
-      "Delete Lecturer",
-      "This will remove the lecturer and their ATS records. Continue?",
-      () => {
-        const previous = lecturers.find((item) => item.id === id);
-
-        setLecturers((prev) => prev.filter((item) => item.id !== id));
-        setCommittees((prev) =>
-          prev.map((committee) => ({
-            ...committee,
-            members: committee.members.filter((member) => member.lecturerId !== id),
-          }))
-        );
-
-        logActivity(`Deleted Lecturer ${previous?.name || id}`, {
-          target: "lecturers",
-          id,
-          prev: previous,
-        });
-      }
-    );
+    confirmAction("Delete Lecturer", "Delete this lecturer?", () => {
+      setLecturers((prev) => prev.filter((item) => item.id !== id));
+      setCommittees((prev) =>
+        prev.map((committee) => ({
+          ...committee,
+          members: committee.members.filter((member) => member.lecturerId !== id),
+        }))
+      );
+      closeConfirm();
+    });
   };
 
   const openEditCourse = (course = null) => {
@@ -905,34 +933,19 @@ export default function App() {
   const saveCourse = () => {
     if (!courseDraft?.code?.trim() || !courseDraft?.name?.trim()) return;
 
-    const previous = coursesList.find((item) => item.id === courseDraft.id) || null;
-
     setCoursesList((prev) =>
       prev.some((item) => item.id === courseDraft.id)
         ? prev.map((item) => (item.id === courseDraft.id ? courseDraft : item))
         : [...prev, courseDraft]
     );
 
-    logActivity(`Saved Course ${courseDraft.code}`, {
-      target: "courses",
-      id: courseDraft.id,
-      prev: previous,
-    });
-
     setCourseDraft(null);
   };
 
   const deleteCourse = (id) => {
     confirmAction("Delete Course", "Delete this course?", () => {
-      const previous = coursesList.find((item) => item.id === id);
-
       setCoursesList((prev) => prev.filter((item) => item.id !== id));
-
-      logActivity(`Deleted Course ${previous?.code || id}`, {
-        target: "courses",
-        id,
-        prev: previous,
-      });
+      closeConfirm();
     });
   };
 
@@ -943,34 +956,19 @@ export default function App() {
   const saveProgram = () => {
     if (!programDraft?.name?.trim()) return;
 
-    const previous = programsList.find((item) => item.id === programDraft.id) || null;
-
     setProgramsList((prev) =>
       prev.some((item) => item.id === programDraft.id)
         ? prev.map((item) => (item.id === programDraft.id ? programDraft : item))
         : [...prev, programDraft]
     );
 
-    logActivity(`Saved Program ${programDraft.name}`, {
-      target: "programs",
-      id: programDraft.id,
-      prev: previous,
-    });
-
     setProgramDraft(null);
   };
 
   const deleteProgram = (id) => {
     confirmAction("Delete Program", "Delete this program?", () => {
-      const previous = programsList.find((item) => item.id === id);
-
       setProgramsList((prev) => prev.filter((item) => item.id !== id));
-
-      logActivity(`Deleted Program ${previous?.name || id}`, {
-        target: "programs",
-        id,
-        prev: previous,
-      });
+      closeConfirm();
     });
   };
 
@@ -981,34 +979,19 @@ export default function App() {
   const saveGroup = () => {
     if (!groupDraft?.groupName?.trim()) return;
 
-    const previous = groups.find((item) => item.id === groupDraft.id) || null;
-
     setGroups((prev) =>
       prev.some((item) => item.id === groupDraft.id)
         ? prev.map((item) => (item.id === groupDraft.id ? groupDraft : item))
         : [...prev, groupDraft]
     );
 
-    logActivity(`Saved Group ${groupDraft.groupName}`, {
-      target: "groups",
-      id: groupDraft.id,
-      prev: previous,
-    });
-
     setGroupDraft(null);
   };
 
   const deleteGroup = (id) => {
     confirmAction("Delete Group", "Delete this group?", () => {
-      const previous = groups.find((item) => item.id === id);
-
       setGroups((prev) => prev.filter((item) => item.id !== id));
-
-      logActivity(`Deleted Group ${previous?.groupName || id}`, {
-        target: "groups",
-        id,
-        prev: previous,
-      });
+      closeConfirm();
     });
   };
 
@@ -1028,44 +1011,25 @@ export default function App() {
   const saveUser = () => {
     if (!userDraft?.username?.trim() || !userDraft?.password?.trim()) return;
 
-    const previous = users[userDraft.role]?.find((user) => user.id === userDraft.id) || null;
-
     setUsers((prev) => {
       const next = { ...prev };
       const roleUsers = next[userDraft.role] || [];
-
       next[userDraft.role] = roleUsers.some((user) => user.id === userDraft.id)
         ? roleUsers.map((user) => (user.id === userDraft.id ? userDraft : user))
         : [...roleUsers, userDraft];
-
       return next;
-    });
-
-    logActivity(`Saved User ${userDraft.username}`, {
-      target: "users",
-      role: userDraft.role,
-      id: userDraft.id,
-      prev: previous,
     });
 
     setUserDraft(null);
   };
 
   const deleteUser = (role, id) => {
-    confirmAction("Delete User", "Remove this user?", () => {
-      const previous = users[role]?.find((user) => user.id === id);
-
+    confirmAction("Delete User", "Delete this user?", () => {
       setUsers((prev) => ({
         ...prev,
-        [role]: (prev[role] || []).filter((user) => user.id !== id),
+        [role]: prev[role].filter((user) => user.id !== id),
       }));
-
-      logActivity(`Deleted User ${previous?.username || id}`, {
-        target: "users",
-        role,
-        id,
-        prev: previous,
-      });
+      closeConfirm();
     });
   };
 
@@ -1076,76 +1040,56 @@ export default function App() {
 
   const toggleHide = (type, id) => {
     if (type === "lecturer") {
-      const previous = lecturers.find((item) => item.id === id);
       setLecturers((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, isHidden: !item.isHidden } : item
-        )
+        prev.map((item) => (item.id === id ? { ...item, isHidden: !item.isHidden } : item))
       );
-      logActivity(`${previous?.isHidden ? "Unhid" : "Hid"} Lecturer ${previous?.name}`, {
-        target: "lecturers",
-        id,
-        prev: previous,
-      });
     }
 
     if (type === "course") {
-      const previous = coursesList.find((item) => item.id === id);
       setCoursesList((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, isHidden: !item.isHidden } : item
-        )
+        prev.map((item) => (item.id === id ? { ...item, isHidden: !item.isHidden } : item))
       );
-      logActivity(`${previous?.isHidden ? "Unhid" : "Hid"} Course ${previous?.code}`, {
-        target: "courses",
-        id,
-        prev: previous,
-      });
     }
 
     if (type === "program") {
-      const previous = programsList.find((item) => item.id === id);
       setProgramsList((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, isHidden: !item.isHidden } : item
-        )
+        prev.map((item) => (item.id === id ? { ...item, isHidden: !item.isHidden } : item))
       );
-      logActivity(`${previous?.isHidden ? "Unhid" : "Hid"} Program ${previous?.name}`, {
-        target: "programs",
-        id,
-        prev: previous,
-      });
     }
 
     if (type === "group") {
-      const previous = groups.find((item) => item.id === id);
       setGroups((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, isHidden: !item.isHidden } : item
-        )
+        prev.map((item) => (item.id === id ? { ...item, isHidden: !item.isHidden } : item))
       );
-      logActivity(`${previous?.isHidden ? "Unhid" : "Hid"} Group ${previous?.groupName}`, {
-        target: "groups",
-        id,
-        prev: previous,
-      });
     }
+  };
+
+  const toggleHideCommittee = (id) => {
+    setCommittees((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, isHidden: !item.isHidden } : item))
+    );
+  };
+
+  const deleteCommittee = (id) => {
+    confirmAction("Delete Committee", "Delete this committee?", () => {
+      setCommittees((prev) => prev.filter((item) => item.id !== id));
+      if (manageCommitteeData?.id === id) setManageCommitteeData(null);
+      if (viewCommitteeData?.id === id) setViewCommitteeData(null);
+      closeConfirm();
+    });
   };
 
   const saveCommitteeMember = () => {
     if (!manageCommitteeData || !newMemberDraft.lecturerName) return;
-
     const lecturer = lecturers.find((item) => item.name === newMemberDraft.lecturerName);
     if (!lecturer) return;
 
     setCommittees((prev) =>
       prev.map((committee) => {
         if (committee.id !== manageCommitteeData.id) return committee;
-
         const cleaned = committee.members.filter(
           (member) => member.lecturerId !== lecturer.id
         );
-
         return {
           ...committee,
           members: [
@@ -1162,7 +1106,6 @@ export default function App() {
     setManageCommitteeData((prev) => {
       if (!prev) return prev;
       const cleaned = prev.members.filter((member) => member.lecturerId !== lecturer.id);
-
       return {
         ...prev,
         members: [
@@ -1175,24 +1118,6 @@ export default function App() {
       };
     });
 
-    if (viewCommitteeData?.id === manageCommitteeData.id) {
-      setViewCommitteeData((prev) => {
-        if (!prev) return prev;
-        const cleaned = prev.members.filter((member) => member.lecturerId !== lecturer.id);
-        return {
-          ...prev,
-          members: [
-            ...cleaned,
-            {
-              lecturerId: lecturer.id,
-              position: newMemberDraft.position || "Ahli Jawatankuasa",
-            },
-          ],
-        };
-      });
-    }
-
-    logActivity(`Assigned ${lecturer.name} to ${manageCommitteeData.name}`);
     setNewMemberDraft({ lecturerName: "", position: "" });
   };
 
@@ -1204,9 +1129,7 @@ export default function App() {
         committee.id === manageCommitteeData.id
           ? {
               ...committee,
-              members: committee.members.filter(
-                (member) => member.lecturerId !== lecturerId
-              ),
+              members: committee.members.filter((member) => member.lecturerId !== lecturerId),
             }
           : committee
       )
@@ -1220,19 +1143,6 @@ export default function App() {
           }
         : prev
     );
-
-    if (viewCommitteeData?.id === manageCommitteeData.id) {
-      setViewCommitteeData((prev) =>
-        prev
-          ? {
-              ...prev,
-              members: prev.members.filter((member) => member.lecturerId !== lecturerId),
-            }
-          : prev
-      );
-    }
-
-    logActivity(`Removed member from ${manageCommitteeData.name}`);
   };
 
   const archiveSemester = () => {
@@ -1252,9 +1162,8 @@ export default function App() {
             committees,
           },
         };
-
         setArchives((prev) => [snapshot, ...prev]);
-        logActivity(`Archived Semester ${globalInfo.semester}`);
+        closeConfirm();
       }
     );
   };
@@ -1264,13 +1173,16 @@ export default function App() {
       "Load Archive",
       `Load data from ${archive.semester}? Current data will be overwritten.`,
       () => {
-        setLecturers(archive.data.lecturers || []);
-        setCoursesList(archive.data.coursesList || []);
-        setGroups(archive.data.groups || []);
-        setProgramsList(archive.data.programsList || []);
+        setLecturers(archive.data.lecturers);
+        setCoursesList(archive.data.coursesList);
+        setGroups(archive.data.groups);
+        setProgramsList(archive.data.programsList);
         setCommittees(archive.data.committees || INITIAL_COMMITTEES);
-        setGlobalInfo((prev) => ({ ...prev, semester: archive.semester }));
-        logActivity(`Loaded Archive ${archive.semester}`);
+        setGlobalInfo((prev) => ({
+          ...prev,
+          semester: archive.semester,
+        }));
+        closeConfirm();
       }
     );
   };
@@ -1278,83 +1190,7 @@ export default function App() {
   const deleteArchive = (id) => {
     confirmAction("Delete Archive", "Delete this archive?", () => {
       setArchives((prev) => prev.filter((archive) => archive.id !== id));
-      logActivity(`Deleted Archive ${id}`);
-    });
-  };
-
-  const undoToLog = (logEntry) => {
-    if (!logEntry.undoData) return;
-
-    confirmAction("Undo Action", `Undo "${logEntry.action}"?`, () => {
-      const undo = logEntry.undoData;
-
-      if (undo.target === "lecturers") {
-        if (undo.prev) {
-          setLecturers((prev) =>
-            prev.some((item) => item.id === undo.id)
-              ? prev.map((item) => (item.id === undo.id ? undo.prev : item))
-              : [...prev, undo.prev]
-          );
-        } else {
-          setLecturers((prev) => prev.filter((item) => item.id !== undo.id));
-        }
-      }
-
-      if (undo.target === "courses") {
-        if (undo.prev) {
-          setCoursesList((prev) =>
-            prev.some((item) => item.id === undo.id)
-              ? prev.map((item) => (item.id === undo.id ? undo.prev : item))
-              : [...prev, undo.prev]
-          );
-        } else {
-          setCoursesList((prev) => prev.filter((item) => item.id !== undo.id));
-        }
-      }
-
-      if (undo.target === "groups") {
-        if (undo.prev) {
-          setGroups((prev) =>
-            prev.some((item) => item.id === undo.id)
-              ? prev.map((item) => (item.id === undo.id ? undo.prev : item))
-              : [...prev, undo.prev]
-          );
-        } else {
-          setGroups((prev) => prev.filter((item) => item.id !== undo.id));
-        }
-      }
-
-      if (undo.target === "programs") {
-        if (undo.prev) {
-          setProgramsList((prev) =>
-            prev.some((item) => item.id === undo.id)
-              ? prev.map((item) => (item.id === undo.id ? undo.prev : item))
-              : [...prev, undo.prev]
-          );
-        } else {
-          setProgramsList((prev) => prev.filter((item) => item.id !== undo.id));
-        }
-      }
-
-      if (undo.target === "users") {
-        if (undo.prev) {
-          setUsers((prev) => {
-            const next = { ...prev };
-            const roleUsers = next[undo.role] || [];
-            next[undo.role] = roleUsers.some((user) => user.id === undo.id)
-              ? roleUsers.map((user) => (user.id === undo.id ? undo.prev : user))
-              : [...roleUsers, undo.prev];
-            return next;
-          });
-        } else {
-          setUsers((prev) => ({
-            ...prev,
-            [undo.role]: (prev[undo.role] || []).filter((user) => user.id !== undo.id),
-          }));
-        }
-      }
-
-      setActivityLogs((prev) => prev.filter((item) => item.id !== logEntry.id));
+      closeConfirm();
     });
   };
 
@@ -1377,53 +1213,49 @@ export default function App() {
           </div>
         </div>
 
-        <div className="sidebar-divider" />
-      </div>
+        <div className="sidebar-divider"></div>
 
-      <div className="sidebar-collapse-row">
-        <button
-          className="collapse-button relocated"
-          onClick={() => setSidebarCollapsed((prev) => !prev)}
-          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {sidebarCollapsed ? "»" : "«"}
-        </button>
+        <div className="sidebar-collapse-row">
+          <button
+            className="collapse-button relocated"
+            onClick={() => setSidebarCollapsed((prev) => !prev)}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? "›" : "‹"}
+          </button>
+        </div>
       </div>
 
       <nav className="sidebar-nav">
         <button
           className={`nav-link ${screen === "dashboard" ? "active" : ""}`}
           onClick={() => setScreen("dashboard")}
-          title="Dashboard"
         >
-          <span className="nav-icon">◻</span>
+          <span className="nav-icon">•</span>
           {!sidebarCollapsed && <span>Dashboard</span>}
         </button>
 
         <button
           className={`nav-link ${screen === "groupInfo" ? "active" : ""}`}
           onClick={() => setScreen("groupInfo")}
-          title="Group Info"
         >
-          <span className="nav-icon">◫</span>
+          <span className="nav-icon">•</span>
           {!sidebarCollapsed && <span>Group Info</span>}
         </button>
 
         <button
           className={`nav-link ${screen === "lecturerAts" ? "active" : ""}`}
           onClick={() => setScreen("lecturerAts")}
-          title="Lecturer ATS"
         >
-          <span className="nav-icon">◧</span>
+          <span className="nav-icon">•</span>
           {!sidebarCollapsed && <span>Lecturer ATS</span>}
         </button>
 
         <button
           className={`nav-link ${screen === "allLecturersAts" ? "active" : ""}`}
           onClick={() => setScreen("allLecturersAts")}
-          title="All Lecturers ATS"
         >
-          <span className="nav-icon">◨</span>
+          <span className="nav-icon">•</span>
           {!sidebarCollapsed && <span>All Lecturers ATS</span>}
         </button>
 
@@ -1434,10 +1266,10 @@ export default function App() {
               onClick={() => setIsOtherCoursesOpen((prev) => !prev)}
             >
               <span className="nav-inline-label">
-                <span className="nav-icon">▣</span>
+                <span className="nav-icon">•</span>
                 <span>Other Courses</span>
               </span>
-              <span>{isOtherCoursesOpen ? "▾" : "▸"}</span>
+              <span>{isOtherCoursesOpen ? "−" : "+"}</span>
             </button>
 
             {isOtherCoursesOpen && (
@@ -1449,13 +1281,17 @@ export default function App() {
                   MUF Codes
                 </button>
                 <button
-                  className={`nav-link sub-link ${screen === "performing" ? "active" : ""}`}
+                  className={`nav-link sub-link ${
+                    screen === "performing" ? "active" : ""
+                  }`}
                   onClick={() => setScreen("performing")}
                 >
                   Performing Groups
                 </button>
                 <button
-                  className={`nav-link sub-link ${screen === "servicing" ? "active" : ""}`}
+                  className={`nav-link sub-link ${
+                    screen === "servicing" ? "active" : ""
+                  }`}
                   onClick={() => setScreen("servicing")}
                 >
                   Servicing Codes
@@ -1464,7 +1300,7 @@ export default function App() {
                   className={`nav-link sub-link ${screen === "forum" ? "active" : ""}`}
                   onClick={() => setScreen("forum")}
                 >
-                  Forum / Colloquium
+                  Forum Colloquium
                 </button>
               </div>
             )}
@@ -1480,21 +1316,13 @@ export default function App() {
         )}
 
         {canAccessSettings && (
-          <button
-            className="ghost-button footer-btn"
-            onClick={() => setScreen("settings")}
-            title="Settings / Admin"
-          >
-            {sidebarCollapsed ? "⚙" : "Settings / Admin"}
+          <button className="ghost-button footer-btn" onClick={() => setScreen("settings")}>
+            {sidebarCollapsed ? "⚙" : "Settings Admin"}
           </button>
         )}
 
-        <button
-          className="ghost-button red footer-btn"
-          onClick={handleLogout}
-          title="Sign out"
-        >
-          {sidebarCollapsed ? "↪" : "Sign out"}
+        <button className="ghost-button red footer-btn" onClick={handleLogout}>
+          {sidebarCollapsed ? "⎋" : "Sign out"}
         </button>
       </div>
     </aside>
@@ -1502,9 +1330,9 @@ export default function App() {
 
   const renderDashboard = () => {
     const counts = {
-      overload: lecturersStatus.filter((item) => item.status === "Overload").length,
-      underload: lecturersStatus.filter((item) => item.status === "Underload").length,
-      noAts: lecturersStatus.filter((item) => item.status === "No ATS").length,
+      overload: lecturerStatusList.filter((item) => item.status === "Overload").length,
+      underload: lecturerStatusList.filter((item) => item.status === "Underload").length,
+      noKS: lecturerStatusList.filter((item) => item.status === "No KS").length,
     };
 
     return (
@@ -1514,9 +1342,10 @@ export default function App() {
             <p className="eyebrow">Overview</p>
             <h2>Dashboard Insights</h2>
             <p className="muted-copy">
-              Monitor workload warnings, over-assigned courses, and missing assignments.
+              Monitor KS workload warnings, over-assigned courses, and missing assignments.
             </p>
           </div>
+
           <button className="primary-button" onClick={() => setScreen("allLecturersAts")}>
             View All Lecturers ATS
           </button>
@@ -1527,14 +1356,17 @@ export default function App() {
             <span className="stat-label">Overload</span>
             <strong>{counts.overload}</strong>
           </div>
+
           <div className="panel stat-card">
             <span className="stat-label">Underload</span>
             <strong>{counts.underload}</strong>
           </div>
+
           <div className="panel stat-card">
-            <span className="stat-label">No ATS</span>
-            <strong>{counts.noAts}</strong>
+            <span className="stat-label">No KS</span>
+            <strong>{counts.noKS}</strong>
           </div>
+
           <div className="panel stat-card">
             <span className="stat-label">Unassigned Courses</span>
             <strong>{unassignedCourses.length}</strong>
@@ -1546,8 +1378,9 @@ export default function App() {
             <div>
               <h3>Load Warnings</h3>
               <p className="muted-copy">
-                <strong>{counts.overload}</strong> overload, <strong>{counts.underload}</strong>{" "}
-                underload, <strong>{counts.noAts}</strong> no ATS.
+                <strong>{counts.overload}</strong> overload,{" "}
+                <strong>{counts.underload}</strong> underload,{" "}
+                <strong>{counts.noKS}</strong> no KS.
               </p>
             </div>
             <button className="ghost-button" onClick={() => setScreen("loadWarningsDetails")}>
@@ -1587,7 +1420,7 @@ export default function App() {
   const renderLoadWarningsDetails = () => (
     <section className="page-grid">
       <div className="panel">
-        <div className="panel-header">
+        <div className="panel-header centered-table-title">
           <h3>Load Warnings - Full Data</h3>
           <button className="ghost-button compact" onClick={() => setScreen("dashboard")}>
             Back to Dashboard
@@ -1599,13 +1432,13 @@ export default function App() {
             <thead>
               <tr>
                 <th>Lecturer</th>
-                <th>Total ATS</th>
+                <th>Total KS</th>
                 <th>Limits</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {lecturersStatus.map((lecturer) => (
+              {lecturerStatusList.map((lecturer) => (
                 <tr key={lecturer.id}>
                   <td>
                     <button
@@ -1618,9 +1451,9 @@ export default function App() {
                       <strong>{lecturer.name}</strong>
                     </button>
                   </td>
-                  <td>{lecturer.total}</td>
-                  <td>
-                    {lecturer.minATS} - {lecturer.maxATS}
+                  <td className="cell-number">{lecturer.totalKS}</td>
+                  <td className="cell-number">
+                    {lecturer.minKS} - {lecturer.maxKS}
                   </td>
                   <td>
                     <span
@@ -1634,10 +1467,10 @@ export default function App() {
                 </tr>
               ))}
 
-              {lecturersStatus.length === 0 && (
+              {lecturerStatusList.length === 0 && (
                 <tr>
-                  <td colSpan="4" className="text-center muted-copy">
-                    All lecturers are within limits.
+                  <td colSpan={4} className="text-center muted-copy">
+                    All lecturers are within KS limits.
                   </td>
                 </tr>
               )}
@@ -1651,7 +1484,7 @@ export default function App() {
   const renderOverAssignedDetails = () => (
     <section className="page-grid">
       <div className="panel">
-        <div className="panel-header">
+        <div className="panel-header centered-table-title">
           <h3>Over-assigned Courses - Full Data</h3>
           <button className="ghost-button compact" onClick={() => setScreen("dashboard")}>
             Back to Dashboard
@@ -1692,12 +1525,22 @@ export default function App() {
 
                     {isExpanded && (
                       <tr className="expanded-row-child">
-                        <td colSpan="3">
+                        <td colSpan={3}>
                           <div className="dropdown-panel-content">
                             <p className="muted-copy">Lecturers handling {course.code}:</p>
-                            <ul className="simple-list">
+                            <ul className="simple-list linked-list">
                               {course.assignedLecturers.map((lecturer) => (
-                                <li key={lecturer.id}>{lecturer.name}</li>
+                                <li key={lecturer.id}>
+                                  <button
+                                    className="link-button"
+                                    onClick={() => {
+                                      setSelectedLecturerId(lecturer.id);
+                                      setScreen("lecturerAts");
+                                    }}
+                                  >
+                                    {lecturer.name}
+                                  </button>
+                                </li>
                               ))}
                             </ul>
                           </div>
@@ -1710,7 +1553,7 @@ export default function App() {
 
               {overAssignedCourses.length === 0 && (
                 <tr>
-                  <td colSpan="3" className="text-center muted-copy">
+                  <td colSpan={3} className="text-center muted-copy">
                     No overlapping courses.
                   </td>
                 </tr>
@@ -1725,7 +1568,7 @@ export default function App() {
   const renderUnassignedDetails = () => (
     <section className="page-grid">
       <div className="panel">
-        <div className="panel-header">
+        <div className="panel-header centered-table-title">
           <h3>Unassigned Courses - Full Data</h3>
           <button className="ghost-button compact" onClick={() => setScreen("dashboard")}>
             Back to Dashboard
@@ -1752,7 +1595,7 @@ export default function App() {
 
               {unassignedCourses.length === 0 && (
                 <tr>
-                  <td colSpan="3" className="text-center muted-copy">
+                  <td colSpan={3} className="text-center muted-copy">
                     All courses assigned.
                   </td>
                 </tr>
@@ -1766,23 +1609,23 @@ export default function App() {
 
   const renderAllLecturersAts = () => {
     const filtered = visibleLecturers
-      .filter(
-        (lecturer) =>
-          !lecSearchName ||
-          lecturer.name.toLowerCase().includes(lecSearchName.toLowerCase())
+      .filter((lecturer) =>
+        !lecSearchName
+          ? true
+          : lecturer.name.toLowerCase().includes(lecSearchName.toLowerCase())
       )
-      .filter(
-        (lecturer) =>
-          !lecSearchDept ||
-          lecturer.departments.some((dept) =>
-            dept.toLowerCase().includes(lecSearchDept.toLowerCase())
-          )
+      .filter((lecturer) =>
+        !lecSearchDept
+          ? true
+          : lecturer.departments.some((dept) =>
+              dept.toLowerCase().includes(lecSearchDept.toLowerCase())
+            )
       );
 
     return (
       <section className="page-grid">
         <div className="panel">
-          <div className="panel-header">
+          <div className="panel-header centered-table-title">
             <h3>All Lecturers ATS</h3>
             <button className="ghost-button compact" onClick={() => setScreen("dashboard")}>
               Back to Dashboard
@@ -1817,16 +1660,17 @@ export default function App() {
                   <th>Lecturer Name</th>
                   <th>Department</th>
                   <th>Groups Handled</th>
-                  <th>Total ATS</th>
-                  <th>Min/Max</th>
-                  <th>Committees</th>
+                  <th>Total KS</th>
+                  <th>Min/Max KS</th>
+                  <th className="nowrap-header">Coms.</th>
                   <th>Action</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filtered.map((lecturer) => {
                   const uniqueGroups = [
-                    ...new Set(lecturer.atsEntries.flatMap((entry) => entry.groups || [])),
+                    ...new Set(lecturer.atsEntries.flatMap((entry) => entry.groups)),
                   ];
                   const committeesCount = getLecturerCommittees(lecturer.id).length;
                   const isExpanded = expandedLecturerId === lecturer.id;
@@ -1847,11 +1691,11 @@ export default function App() {
                         </td>
                         <td>{lecturer.departments.join(", ")}</td>
                         <td>{uniqueGroups.join(", ") || "-"}</td>
-                        <td>{getAtsTotal(lecturer)}</td>
-                        <td>
-                          {lecturer.minATS} - {lecturer.maxATS}
+                        <td className="cell-number">{getTotalKs(lecturer)}</td>
+                        <td className="cell-number">
+                          {lecturer.minKS} - {lecturer.maxKS}
                         </td>
-                        <td>{committeesCount}</td>
+                        <td className="cell-number">{committeesCount}</td>
                         <td>
                           <button
                             className="ghost-button compact"
@@ -1866,13 +1710,15 @@ export default function App() {
 
                       {isExpanded && (
                         <tr className="expanded-row-child">
-                          <td colSpan="7">
+                          <td colSpan={7}>
                             <div className="dropdown-panel-content">
-                              <h4>ATS Breakdown for {lecturer.name}</h4>
+                              <div className="expanded-title-wrap">
+                                <h4>ATS Breakdown for {lecturer.name}</h4>
+                              </div>
 
                               {lecturer.atsEntries.length > 0 ? (
                                 <div className="table-wrapper inner-table-wrapper">
-                                  <table className="data-table condensed expanded-ats-table">
+                                  <table className="data-table condensed expanded-ats-table aligned-expanded-table">
                                     <thead>
                                       <tr>
                                         <th>Course Codes</th>
@@ -1891,10 +1737,8 @@ export default function App() {
                                         <tr key={entry.id}>
                                           <td>{entry.courseCodes.join(", ")}</td>
                                           <td>{entry.courseNames.join(", ")}</td>
-                                          <td className="programs-cell">
-                                            {entry.programs.join(", ")}
-                                          </td>
-                                          <td>{entry.groups.join(", ")}</td>
+                                          <td className="programs-cell">{entry.programs.join(", ")}</td>
+                                          <td>{getFormattedGroups(entry.groups, groups).join(", ")}</td>
                                           <td className="cell-number">{entry.ks}</td>
                                           <td className="cell-number">{entry.k1Supervision}</td>
                                           <td className="cell-number">{entry.k2Research}</td>
@@ -1936,9 +1780,9 @@ export default function App() {
         )
       : { ks: 0, k1: 0, k2: 0, k3: 0 };
 
-    const lecturerCommitteeCount = selectedLecturer
-      ? getLecturerCommittees(selectedLecturer.id).length
-      : 0;
+    const lecturerCommitteeList = selectedLecturer
+      ? getLecturerCommittees(selectedLecturer.id)
+      : [];
 
     return (
       <section className="page-grid">
@@ -1963,7 +1807,7 @@ export default function App() {
               <span>Lecturer</span>
               <SearchableSingleSelect
                 options={filteredLecturers.map((lecturer) => lecturer.name)}
-                selected={selectedLecturer?.name || ""}
+                selected={selectedLecturer?.name}
                 onChange={(value, exact) => {
                   const match = lecturers.find((lecturer) => lecturer.name === value);
                   if (exact && match) setSelectedLecturerId(match.id);
@@ -1978,6 +1822,7 @@ export default function App() {
                 className="primary-button align-end"
                 onClick={() => {
                   setNewAtsDraft(createBlankAtsEntry());
+                  setSelectedCourseDisplays([]);
                   setIsAddAtsModalOpen(true);
                 }}
               >
@@ -1996,60 +1841,67 @@ export default function App() {
                   {selectedLecturer.position} • {selectedLecturer.departments.join(", ")}
                 </p>
                 <p>{selectedLecturer.additionalInfo || "No expertise info."}</p>
+                <p className="muted-copy summary-limit-line">
+                  Min KS: <strong>{selectedLecturer.minKS}</strong> • Max KS:{" "}
+                  <strong>{selectedLecturer.maxKS}</strong> • Status:{" "}
+                  <strong>{getLecturerStatus(selectedLecturer)}</strong>
+                </p>
               </div>
 
               <div className="lecturer-summary-right">
-                <div className="quick-stat-card quick-stat-blue">
+                <div className="quick-stat-card themed-stat-blue">
                   <span>Total KS</span>
                   <strong>{getTotalKs(selectedLecturer)}</strong>
                 </div>
-                <div className="quick-stat-card quick-stat-green">
-                  <span>Committees</span>
-                  <strong>{lecturerCommitteeCount}</strong>
+
+                <div className="quick-stat-card themed-stat-green">
+                  <span>Total Committees</span>
+                  <strong>{lecturerCommitteeList.length}</strong>
+                  <button
+                    type="button"
+                    className="stat-view-link"
+                    onClick={() => setViewLecturerComsId(selectedLecturer.id)}
+                  >
+                    View
+                  </button>
                 </div>
               </div>
             </div>
 
-            <div className="table-wrapper">
-              <table className="data-table ats-detailed-table">
-                <thead>
-                  <tr>
-                    <th>Course Codes</th>
-                    <th>Course Names</th>
-                    <th>Programs</th>
-                    <th>Groups</th>
-                    <th>KS</th>
-                    <th>K1</th>
-                    <th>K2</th>
-                    <th>K3</th>
-                    <th>Remarks</th>
-                    <th>Coms.</th>
-                    {!isReadOnly && <th>Action</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedLecturer.atsEntries.map((entry) => {
-                    const myCommittees = getLecturerCommittees(selectedLecturer.id);
+            <div className="panel">
+              <div className="panel-header centered-table-title">
+                <h3>Lecturer ATS Details</h3>
+              </div>
 
-                    return (
+              <div className="table-wrapper">
+                <table className="data-table ats-detailed-table aligned-main-ats-table">
+                  <thead>
+                    <tr>
+                      <th>Course Codes</th>
+                      <th>Course Names</th>
+                      <th>Programs</th>
+                      <th>Groups</th>
+                      <th>KS</th>
+                      <th>K1</th>
+                      <th>K2</th>
+                      <th>K3</th>
+                      <th>Remarks</th>
+                      {!isReadOnly && <th>Action</th>}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {selectedLecturer.atsEntries.map((entry) => (
                       <tr key={entry.id}>
                         <td>{entry.courseCodes.join(", ")}</td>
                         <td>{entry.courseNames.join(", ")}</td>
-                        <td>{entry.programs.join(", ")}</td>
-                        <td>{entry.groups.join(", ")}</td>
+                        <td className="programs-cell">{entry.programs.join(", ")}</td>
+                        <td>{getFormattedGroups(entry.groups, groups).join(", ")}</td>
                         <td className="cell-number">{entry.ks}</td>
                         <td className="cell-number">{entry.k1Supervision}</td>
                         <td className="cell-number">{entry.k2Research}</td>
                         <td className="cell-number">{entry.k3Service}</td>
                         <td>{entry.remarks || "-"}</td>
-                        <td>
-                          <button
-                            className="link-button"
-                            onClick={() => setViewLecturerComsId(selectedLecturer.id)}
-                          >
-                            {myCommittees.length}
-                          </button>
-                        </td>
                         {!isReadOnly && (
                           <td>
                             <div className="actions-cell">
@@ -2069,37 +1921,38 @@ export default function App() {
                           </td>
                         )}
                       </tr>
-                    );
-                  })}
+                    ))}
 
-                  {selectedLecturer.atsEntries.length > 0 && (
-                    <tr className="totals-row">
-                      <td colSpan="4">
-                        <strong>TOTALS</strong>
-                      </td>
-                      <td className="cell-number">{totals.ks}</td>
-                      <td className="cell-number">{totals.k1}</td>
-                      <td className="cell-number">{totals.k2}</td>
-                      <td className="cell-number">{totals.k3}</td>
-                      <td colSpan={isReadOnly ? 2 : 3}></td>
-                    </tr>
-                  )}
+                    {selectedLecturer.atsEntries.length > 0 && (
+                      <tr className="totals-row">
+                        <td colSpan={4} className="totals-label-cell">
+                          <strong>TOTALS</strong>
+                        </td>
+                        <td className="cell-number totals-value-cell">{totals.ks}</td>
+                        <td className="cell-number totals-value-cell">{totals.k1}</td>
+                        <td className="cell-number totals-value-cell">{totals.k2}</td>
+                        <td className="cell-number totals-value-cell">{totals.k3}</td>
+                        <td className="totals-spacer-cell"></td>
+                        {!isReadOnly && <td className="totals-spacer-cell"></td>}
+                      </tr>
+                    )}
 
-                  {selectedLecturer.atsEntries.length === 0 && (
-                    <tr>
-                      <td colSpan={isReadOnly ? 10 : 11} className="text-center muted-copy">
-                        No ATS entries found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    {selectedLecturer.atsEntries.length === 0 && (
+                      <tr>
+                        <td colSpan={isReadOnly ? 9 : 10} className="text-center muted-copy">
+                          No ATS entries found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </>
         ) : (
           <div className="panel empty-state">
             <p className="muted-copy">
-              Search and select a lecturer above to view ATS details.
+              Search and select a lecturer above to view their ATS details.
             </p>
           </div>
         )}
@@ -2115,7 +1968,7 @@ export default function App() {
     return (
       <section className="page-grid">
         <div className="panel">
-          <div className="panel-header">
+          <div className="panel-header centered-table-title">
             <div>
               <h3>Group Info</h3>
               <p className="muted-copy">
@@ -2177,7 +2030,7 @@ export default function App() {
 
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan="4" className="text-center muted-copy">
+                    <td colSpan={4} className="text-center muted-copy">
                       No groups found.
                     </td>
                   </tr>
@@ -2208,34 +2061,34 @@ export default function App() {
         <div className="panel">
           <div className="panel-header">
             <div>
-              <h3>Settings & Admin</h3>
+              <h3>Settings Admin</h3>
               <p className="muted-copy">
                 Manage core data, system globals, and permissions.
               </p>
             </div>
-          </div>
 
-          <div className="tab-row">
-            {[
-              "general",
-              "users",
-              "committees",
-              "programs",
-              "groups",
-              "lecturers",
-              "courses",
-              "logs",
-              "archives",
-              ...(isDeveloper ? ["developer"] : []),
-            ].map((tab) => (
-              <button
-                key={tab}
-                className={`tab-button ${settingsTab === tab ? "active" : ""}`}
-                onClick={() => setSettingsTab(tab)}
-              >
-                {tab}
-              </button>
-            ))}
+            <div className="tab-row">
+              {[
+                "general",
+                "users",
+                "committees",
+                "programs",
+                "groups",
+                "lecturers",
+                "courses",
+                "logs",
+                "archives",
+                ...(isDeveloper ? ["developer"] : []),
+              ].map((tab) => (
+                <button
+                  key={tab}
+                  className={`tab-button ${settingsTab === tab ? "active" : ""}`}
+                  onClick={() => setSettingsTab(tab)}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -2314,7 +2167,7 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(users[userRoleTab] || []).map((user) => (
+                  {users[userRoleTab].map((user) => (
                     <tr key={user.id}>
                       <td>{user.username}</td>
                       <td>{user.password}</td>
@@ -2337,7 +2190,7 @@ export default function App() {
                     </tr>
                   ))}
 
-                  {(users[userRoleTab] || []).length === 0 && (
+                  {users[userRoleTab].length === 0 && (
                     <tr>
                       <td colSpan={isReadOnly ? 2 : 3} className="text-center muted-copy">
                         No users in this role.
@@ -2398,8 +2251,12 @@ export default function App() {
                 <tbody>
                   {committees
                     .filter((committee) => committee.category === comSettingsTab)
+                    .sort(sortHiddenLast)
                     .map((committee) => (
-                      <tr key={committee.id}>
+                      <tr
+                        key={committee.id}
+                        className={committee.isHidden ? "hidden-row" : ""}
+                      >
                         <td>
                           <button
                             className="link-button"
@@ -2409,12 +2266,24 @@ export default function App() {
                           </button>
                         </td>
                         <td className="cell-number">{committee.members.length}</td>
-                        <td>
+                        <td className="actions-cell">
                           <button
                             className="ghost-button compact"
                             onClick={() => setManageCommitteeData(committee)}
                           >
                             Manage
+                          </button>
+                          <button
+                            className="ghost-button compact"
+                            onClick={() => toggleHideCommittee(committee.id)}
+                          >
+                            {committee.isHidden ? "Unhide" : "Hide"}
+                          </button>
+                          <button
+                            className="ghost-button compact red"
+                            onClick={() => deleteCommittee(committee.id)}
+                          >
+                            Delete
                           </button>
                         </td>
                       </tr>
@@ -2532,7 +2401,8 @@ export default function App() {
                   {groups
                     .filter(
                       (group) =>
-                        (filterGroupDept === "All" || group.department === filterGroupDept) &&
+                        (filterGroupDept === "All" ||
+                          group.department === filterGroupDept) &&
                         group.groupName.toLowerCase().includes(searchGroup.toLowerCase())
                     )
                     .sort(sortHiddenLast)
@@ -2607,7 +2477,7 @@ export default function App() {
                     <th>Name</th>
                     <th>Departments</th>
                     <th>Position</th>
-                    <th>ATS Range</th>
+                    <th>Min/Max KS</th>
                     {!isReadOnly && <th>Actions</th>}
                   </tr>
                 </thead>
@@ -2621,12 +2491,15 @@ export default function App() {
                     )
                     .sort(sortHiddenLast)
                     .map((lecturer) => (
-                      <tr key={lecturer.id} className={lecturer.isHidden ? "hidden-row" : ""}>
+                      <tr
+                        key={lecturer.id}
+                        className={lecturer.isHidden ? "hidden-row" : ""}
+                      >
                         <td>{lecturer.name}</td>
                         <td>{lecturer.departments.join(", ")}</td>
                         <td>{lecturer.position}</td>
-                        <td>
-                          {lecturer.minATS} - {lecturer.maxATS}
+                        <td className="cell-number">
+                          {lecturer.minKS} - {lecturer.maxKS}
                         </td>
                         {!isReadOnly && (
                           <td className="actions-cell">
@@ -2702,7 +2575,7 @@ export default function App() {
                     .filter(
                       (course) =>
                         (filterCourseDept === "All" ||
-                          course.programs?.includes(filterCourseDept)) &&
+                          course.programs.includes(filterCourseDept)) &&
                         (course.code.toLowerCase().includes(searchCourse.toLowerCase()) ||
                           course.name.toLowerCase().includes(searchCourse.toLowerCase()))
                     )
@@ -2744,14 +2617,17 @@ export default function App() {
 
         {settingsTab === "logs" && (
           <div className="panel">
+            <div className="panel-header centered-table-title">
+              <h3>Activity Logs</h3>
+            </div>
+
             <div className="table-wrapper">
               <table className="data-table">
                 <thead>
                   <tr>
                     <th>Timestamp</th>
-                    <th>User ID</th>
+                    <th>User</th>
                     <th>Action</th>
-                    <th>Undo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2760,24 +2636,12 @@ export default function App() {
                       <td>{log.timestamp}</td>
                       <td>{log.user}</td>
                       <td>{log.action}</td>
-                      <td>
-                        {log.undoData && !isReadOnly ? (
-                          <button
-                            className="ghost-button compact"
-                            onClick={() => undoToLog(log)}
-                          >
-                            Undo
-                          </button>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
                     </tr>
                   ))}
 
                   {activityLogs.length === 0 && (
                     <tr>
-                      <td colSpan="4" className="text-center muted-copy">
+                      <td colSpan={3} className="text-center muted-copy">
                         No recent activity.
                       </td>
                     </tr>
@@ -2791,12 +2655,14 @@ export default function App() {
         {settingsTab === "archives" && (
           <div className="panel">
             <div className="panel-header">
-              <p className="muted-copy">Save the current state to refer back to later.</p>
-              {!isReadOnly && (
-                <button className="primary-button compact" onClick={archiveSemester}>
-                  Archive Current Semester
-                </button>
-              )}
+              <div>
+                <h3>Archives</h3>
+                <p className="muted-copy">Save the current state to refer back to later.</p>
+              </div>
+
+              <button className="primary-button compact" onClick={archiveSemester}>
+                Archive Current Semester
+              </button>
             </div>
 
             <div className="table-wrapper">
@@ -2832,8 +2698,8 @@ export default function App() {
 
                   {archives.length === 0 && (
                     <tr>
-                      <td colSpan="3" className="text-center muted-copy">
-                        No archives saved.
+                      <td colSpan={3} className="text-center muted-copy">
+                        No archives saved yet.
                       </td>
                     </tr>
                   )}
@@ -2846,40 +2712,45 @@ export default function App() {
     );
   };
 
-  const renderSimplePlaceholder = (title) => (
+  const renderPlaceholder = (title) => (
     <section className="page-grid">
-      <div className="panel empty-state">
-        <p className="muted-copy">{title} page is under construction.</p>
+      <div className="panel">
+        <div className="panel-header centered-table-title">
+          <h3>{title}</h3>
+        </div>
+        <div className="empty-state">
+          <p className="muted-copy">This section is currently under construction.</p>
+        </div>
       </div>
     </section>
   );
 
-  const renderCurrentScreen = () => {
+  const renderMainContent = () => {
     switch (screen) {
       case "dashboard":
         return renderDashboard();
-      case "groupInfo":
-        return renderGroupInfo();
-      case "lecturerAts":
-        return renderLecturerAts();
-      case "allLecturersAts":
-        return renderAllLecturersAts();
       case "loadWarningsDetails":
         return renderLoadWarningsDetails();
       case "overAssignedDetails":
         return renderOverAssignedDetails();
       case "unassignedDetails":
         return renderUnassignedDetails();
+      case "allLecturersAts":
+        return renderAllLecturersAts();
+      case "lecturerAts":
+        return renderLecturerAts();
+      case "groupInfo":
+        return renderGroupInfo();
       case "settings":
         return renderSettings();
       case "muf":
-        return renderSimplePlaceholder("MUF Codes");
+        return renderPlaceholder("MUF Codes");
       case "performing":
-        return renderSimplePlaceholder("Performing Groups");
+        return renderPlaceholder("Performing Groups");
       case "servicing":
-        return renderSimplePlaceholder("Servicing Codes");
+        return renderPlaceholder("Servicing Codes");
       case "forum":
-        return renderSimplePlaceholder("Forum / Colloquium");
+        return renderPlaceholder("Forum Colloquium");
       default:
         return renderDashboard();
     }
@@ -2891,9 +2762,9 @@ export default function App() {
         <div className="login-card">
           <div className="brand-block">
             <div className="brand-mark large">ATS</div>
-            <h1>Lecturer Load Planner</h1>
+            <h1>Faculty Workload Management System</h1>
             <p className="muted-copy">
-              Faculty workload management system for teaching load planning.
+              Sign in to manage lecturers, courses, groups, programs and committees.
             </p>
           </div>
 
@@ -2906,8 +2777,8 @@ export default function App() {
             <div className="role-switcher-inline">
               {LOGIN_ROLE_OPTIONS.map((role) => (
                 <button
-                  key={role.key}
                   type="button"
+                  key={role.key}
                   className={`role-pill ${selectedLoginRole === role.key ? "active" : ""}`}
                   onClick={() => setSelectedLoginRole(role.key)}
                 >
@@ -2919,10 +2790,9 @@ export default function App() {
             <label className="field">
               <span>Username</span>
               <input
-                type="text"
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
-                placeholder="Leave blank only for developer access"
+                placeholder="Enter username"
               />
             </label>
 
@@ -2932,13 +2802,13 @@ export default function App() {
                 type="password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                required
+                placeholder="Enter password"
               />
             </label>
 
             {loginError && <p className="error-text">{loginError}</p>}
 
-            <button type="submit" className="primary-button login-submit">
+            <button type="submit" className="primary-button full-width">
               Sign In
             </button>
           </form>
@@ -2951,30 +2821,169 @@ export default function App() {
     <div className="app-shell">
       {renderSidebar()}
 
-      <div className="main-content">
+      <main className="main-content">
         <header className="topbar">
-          <h1>
-            ATS Application -{" "}
-            {screen === "lecturerAts"
-              ? "Lecturer ATS"
-              : screen === "groupInfo"
-              ? "Group Info"
-              : screen === "allLecturersAts"
-              ? "All Lecturers ATS"
-              : screen === "loadWarningsDetails"
-              ? "Load Warnings"
-              : screen === "overAssignedDetails"
-              ? "Over-assigned Courses"
-              : screen === "unassignedDetails"
-              ? "Unassigned Courses"
-              : screen === "settings"
-              ? "Settings"
-              : screen.charAt(0).toUpperCase() + screen.slice(1)}
-          </h1>
+          <h1>ATS Planner</h1>
         </header>
 
-        <main className="main-scroll">{renderCurrentScreen()}</main>
-      </div>
+        <div className="main-scroll">{renderMainContent()}</div>
+      </main>
+
+      {isAddAtsModalOpen && (
+        <div className="global-overlay">
+          <div className="modal-content center-modal">
+            <div className="modal-header">
+              <h3>{newAtsDraft?.id ? "Add / Edit ATS Entry" : "ATS Entry"}</h3>
+              <button className="ghost-button compact" onClick={() => setIsAddAtsModalOpen(false)}>
+                Close
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-grid">
+                <label className="field">
+                  <span>Course Code/Name</span>
+                  <SearchableCourseMultiSelect
+                    options={visibleCourses.map((course) => `${course.code} - ${course.name}`)}
+                    selected={selectedCourseDisplays}
+                    onChange={handleAtsCourseCodesChange}
+                    placeholder="Type any part of code or course name..."
+                  />
+                </label>
+
+                <div className="form-grid three-cols">
+                  <label className="field">
+                    <span>Programs</span>
+                    <input
+                      value={newAtsDraft.programs.join(", ")}
+                      onChange={(e) =>
+                        setNewAtsDraft((prev) => ({
+                          ...prev,
+                          programs: e.target.value
+                            .split(",")
+                            .map((item) => item.trim())
+                            .filter(Boolean),
+                        }))
+                      }
+                      placeholder="MU110, MU111"
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Groups</span>
+                    <input
+                      value={newAtsDraft.groups.join(", ")}
+                      onChange={(e) =>
+                        setNewAtsDraft((prev) => ({
+                          ...prev,
+                          groups: e.target.value
+                            .split(",")
+                            .map((item) => item.trim())
+                            .filter(Boolean),
+                        }))
+                      }
+                      placeholder="CAMU1101A"
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Contact Hours</span>
+                    <input
+                      type="number"
+                      value={newAtsDraft.contactHours}
+                      onChange={(e) =>
+                        setNewAtsDraft((prev) => ({
+                          ...prev,
+                          contactHours: Number(e.target.value),
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+
+                <div className="form-grid three-cols">
+                  <label className="field">
+                    <span>KS</span>
+                    <input
+                      type="number"
+                      value={newAtsDraft.ks}
+                      onChange={(e) =>
+                        setNewAtsDraft((prev) => ({
+                          ...prev,
+                          ks: Number(e.target.value),
+                        }))
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>K1</span>
+                    <input
+                      type="number"
+                      value={newAtsDraft.k1Supervision}
+                      onChange={(e) =>
+                        setNewAtsDraft((prev) => ({
+                          ...prev,
+                          k1Supervision: Number(e.target.value),
+                        }))
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>K2</span>
+                    <input
+                      type="number"
+                      value={newAtsDraft.k2Research}
+                      onChange={(e) =>
+                        setNewAtsDraft((prev) => ({
+                          ...prev,
+                          k2Research: Number(e.target.value),
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+
+                <div className="form-grid split-2">
+                  <label className="field">
+                    <span>K3</span>
+                    <input
+                      type="number"
+                      value={newAtsDraft.k3Service}
+                      onChange={(e) =>
+                        setNewAtsDraft((prev) => ({
+                          ...prev,
+                          k3Service: Number(e.target.value),
+                        }))
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Remarks</span>
+                    <textarea
+                      value={newAtsDraft.remarks}
+                      onChange={(e) =>
+                        setNewAtsDraft((prev) => ({
+                          ...prev,
+                          remarks: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="primary-button full-width" onClick={saveAtsEntry}>
+                Save ATS Entry
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {lecturerDraft && (
         <div className="global-overlay">
@@ -2985,15 +2994,15 @@ export default function App() {
                 Close
               </button>
             </div>
+
             <div className="modal-body">
               <div className="form-grid three-cols">
                 <label className="field">
                   <span>Name</span>
                   <input
-                    type="text"
                     value={lecturerDraft.name}
                     onChange={(e) =>
-                      setLecturerDraft({ ...lecturerDraft, name: e.target.value })
+                      setLecturerDraft((prev) => ({ ...prev, name: e.target.value }))
                     }
                   />
                 </label>
@@ -3003,7 +3012,7 @@ export default function App() {
                   <select
                     value={lecturerDraft.position}
                     onChange={(e) =>
-                      setLecturerDraft({ ...lecturerDraft, position: e.target.value })
+                      setLecturerDraft((prev) => ({ ...prev, position: e.target.value }))
                     }
                   >
                     {POSITION_OPTIONS.map((position) => (
@@ -3015,73 +3024,66 @@ export default function App() {
                 </label>
 
                 <label className="field">
-                  <span>Expertise</span>
+                  <span>Departments</span>
                   <input
-                    type="text"
-                    value={lecturerDraft.additionalInfo}
+                    value={lecturerDraft.departments.join(", ")}
                     onChange={(e) =>
-                      setLecturerDraft({
-                        ...lecturerDraft,
-                        additionalInfo: e.target.value,
-                      })
+                      setLecturerDraft((prev) => ({
+                        ...prev,
+                        departments: e.target.value
+                          .split(",")
+                          .map((item) => item.trim())
+                          .filter(Boolean),
+                      }))
                     }
                   />
                 </label>
-              </div>
-
-              <div className="field">
-                <span>Departments</span>
-                <MultiSelectChips
-                  options={DEPARTMENTS}
-                  selected={lecturerDraft.departments}
-                  onChange={(value) =>
-                    setLecturerDraft({ ...lecturerDraft, departments: value })
-                  }
-                  placeholder="Select departments..."
-                />
               </div>
 
               <div className="form-grid three-cols">
                 <label className="field">
-                  <span>Min ATS</span>
+                  <span>Min KS</span>
                   <input
                     type="number"
-                    value={lecturerDraft.minATS}
+                    value={lecturerDraft.minKS}
                     onChange={(e) =>
-                      setLecturerDraft({
-                        ...lecturerDraft,
-                        minATS: Number(e.target.value),
-                      })
+                      setLecturerDraft((prev) => ({
+                        ...prev,
+                        minKS: Number(e.target.value),
+                      }))
                     }
                   />
                 </label>
 
                 <label className="field">
-                  <span>Max ATS</span>
+                  <span>Max KS</span>
                   <input
                     type="number"
-                    value={lecturerDraft.maxATS}
+                    value={lecturerDraft.maxKS}
                     onChange={(e) =>
-                      setLecturerDraft({
-                        ...lecturerDraft,
-                        maxATS: Number(e.target.value),
-                      })
+                      setLecturerDraft((prev) => ({
+                        ...prev,
+                        maxKS: Number(e.target.value),
+                      }))
                     }
                   />
                 </label>
 
                 <label className="field">
-                  <span>Remarks</span>
+                  <span>Additional Info</span>
                   <input
-                    type="text"
-                    value={lecturerDraft.remarks}
+                    value={lecturerDraft.additionalInfo}
                     onChange={(e) =>
-                      setLecturerDraft({ ...lecturerDraft, remarks: e.target.value })
+                      setLecturerDraft((prev) => ({
+                        ...prev,
+                        additionalInfo: e.target.value,
+                      }))
                     }
                   />
                 </label>
               </div>
             </div>
+
             <div className="modal-footer">
               <button className="primary-button full-width" onClick={saveLecturer}>
                 Save Lecturer
@@ -3100,15 +3102,15 @@ export default function App() {
                 Close
               </button>
             </div>
+
             <div className="modal-body">
-              <div className="form-grid">
+              <div className="form-grid split-2">
                 <label className="field">
                   <span>Course Code</span>
                   <input
-                    type="text"
                     value={courseDraft.code}
                     onChange={(e) =>
-                      setCourseDraft({ ...courseDraft, code: e.target.value.toUpperCase() })
+                      setCourseDraft((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))
                     }
                   />
                 </label>
@@ -3116,25 +3118,31 @@ export default function App() {
                 <label className="field">
                   <span>Course Name</span>
                   <input
-                    type="text"
                     value={courseDraft.name}
                     onChange={(e) =>
-                      setCourseDraft({ ...courseDraft, name: e.target.value.toUpperCase() })
+                      setCourseDraft((prev) => ({ ...prev, name: e.target.value.toUpperCase() }))
                     }
                   />
                 </label>
               </div>
 
-              <div className="field">
+              <label className="field">
                 <span>Programs</span>
-                <MultiSelectChips
-                  options={visiblePrograms.map((program) => program.name)}
-                  selected={courseDraft.programs}
-                  onChange={(value) => setCourseDraft({ ...courseDraft, programs: value })}
-                  placeholder="Select programs..."
+                <input
+                  value={courseDraft.programs.join(", ")}
+                  onChange={(e) =>
+                    setCourseDraft((prev) => ({
+                      ...prev,
+                      programs: e.target.value
+                        .split(",")
+                        .map((item) => item.trim())
+                        .filter(Boolean),
+                    }))
+                  }
                 />
-              </div>
+              </label>
             </div>
+
             <div className="modal-footer">
               <button className="primary-button full-width" onClick={saveCourse}>
                 Save Course
@@ -3153,18 +3161,22 @@ export default function App() {
                 Close
               </button>
             </div>
+
             <div className="modal-body">
               <label className="field">
                 <span>Program Name</span>
                 <input
-                  type="text"
                   value={programDraft.name}
                   onChange={(e) =>
-                    setProgramDraft({ ...programDraft, name: e.target.value.toUpperCase() })
+                    setProgramDraft((prev) => ({
+                      ...prev,
+                      name: e.target.value.toUpperCase(),
+                    }))
                   }
                 />
               </label>
             </div>
+
             <div className="modal-footer">
               <button className="primary-button full-width" onClick={saveProgram}>
                 Save Program
@@ -3183,15 +3195,18 @@ export default function App() {
                 Close
               </button>
             </div>
+
             <div className="modal-body">
               <div className="form-grid three-cols">
                 <label className="field">
                   <span>Group Name</span>
                   <input
-                    type="text"
                     value={groupDraft.groupName}
                     onChange={(e) =>
-                      setGroupDraft({ ...groupDraft, groupName: e.target.value.toUpperCase() })
+                      setGroupDraft((prev) => ({
+                        ...prev,
+                        groupName: e.target.value.toUpperCase(),
+                      }))
                     }
                   />
                 </label>
@@ -3201,7 +3216,10 @@ export default function App() {
                   <select
                     value={groupDraft.department}
                     onChange={(e) =>
-                      setGroupDraft({ ...groupDraft, department: e.target.value })
+                      setGroupDraft((prev) => ({
+                        ...prev,
+                        department: e.target.value,
+                      }))
                     }
                   >
                     {DEPARTMENTS.map((dept) => (
@@ -3218,15 +3236,16 @@ export default function App() {
                     type="number"
                     value={groupDraft.studentCount}
                     onChange={(e) =>
-                      setGroupDraft({
-                        ...groupDraft,
+                      setGroupDraft((prev) => ({
+                        ...prev,
                         studentCount: Number(e.target.value),
-                      })
+                      }))
                     }
                   />
                 </label>
               </div>
             </div>
+
             <div className="modal-footer">
               <button className="primary-button full-width" onClick={saveGroup}>
                 Save Group
@@ -3236,7 +3255,7 @@ export default function App() {
         </div>
       )}
 
-      {userDraft && canAccessSettings && (
+      {userDraft && (
         <div className="global-overlay">
           <div className="modal-content center-modal">
             <div className="modal-header">
@@ -3245,15 +3264,15 @@ export default function App() {
                 Close
               </button>
             </div>
+
             <div className="modal-body">
               <div className="form-grid split-2">
                 <label className="field">
                   <span>Username</span>
                   <input
-                    type="text"
                     value={userDraft.username}
                     onChange={(e) =>
-                      setUserDraft({ ...userDraft, username: e.target.value })
+                      setUserDraft((prev) => ({ ...prev, username: e.target.value }))
                     }
                   />
                 </label>
@@ -3261,157 +3280,18 @@ export default function App() {
                 <label className="field">
                   <span>Password</span>
                   <input
-                    type="text"
                     value={userDraft.password}
                     onChange={(e) =>
-                      setUserDraft({ ...userDraft, password: e.target.value })
+                      setUserDraft((prev) => ({ ...prev, password: e.target.value }))
                     }
                   />
                 </label>
               </div>
             </div>
+
             <div className="modal-footer">
               <button className="primary-button full-width" onClick={saveUser}>
                 Save User
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isAddAtsModalOpen && (
-        <div className="global-overlay">
-          <div className="modal-content center-modal">
-            <div className="modal-header">
-              <h3>{newAtsDraft.id.includes("ats-test") ? "Edit ATS Entry" : "Add ATS Entry"}</h3>
-              <button
-                className="ghost-button compact"
-                onClick={() => {
-                  setIsAddAtsModalOpen(false);
-                  setNewAtsDraft(createBlankAtsEntry());
-                }}
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <div className="field">
-                <span>Course Codes</span>
-                <MultiSelectChips
-                  options={visibleCourses.map((course) => course.code)}
-                  selected={newAtsDraft.courseCodes}
-                  onChange={handleAtsCourseCodesChange}
-                  placeholder="Select course codes..."
-                />
-              </div>
-
-              <div className="form-grid split-2">
-                <label className="field">
-                  <span>Programs</span>
-                  <MultiSelectChips
-                    options={visiblePrograms.map((program) => program.name)}
-                    selected={newAtsDraft.programs}
-                    onChange={(value) => setNewAtsDraft({ ...newAtsDraft, programs: value })}
-                    placeholder="Select programs..."
-                  />
-                </label>
-
-                <label className="field">
-                  <span>Groups</span>
-                  <MultiSelectChips
-                    options={visibleGroups.map((group) => group.groupName)}
-                    selected={newAtsDraft.groups}
-                    onChange={(value) => setNewAtsDraft({ ...newAtsDraft, groups: value })}
-                    placeholder="Select groups..."
-                  />
-                </label>
-              </div>
-
-              <div className="form-grid ats-metrics-grid">
-                <label className="field">
-                  <span>KS</span>
-                  <input
-                    type="number"
-                    value={newAtsDraft.ks}
-                    onChange={(e) =>
-                      setNewAtsDraft({ ...newAtsDraft, ks: Number(e.target.value) })
-                    }
-                  />
-                </label>
-
-                <label className="field">
-                  <span>Contact Hours</span>
-                  <input
-                    type="number"
-                    value={newAtsDraft.contactHours}
-                    onChange={(e) =>
-                      setNewAtsDraft({
-                        ...newAtsDraft,
-                        contactHours: Number(e.target.value),
-                      })
-                    }
-                  />
-                </label>
-
-                <label className="field">
-                  <span>K1 Supervision</span>
-                  <input
-                    type="number"
-                    value={newAtsDraft.k1Supervision}
-                    onChange={(e) =>
-                      setNewAtsDraft({
-                        ...newAtsDraft,
-                        k1Supervision: Number(e.target.value),
-                      })
-                    }
-                  />
-                </label>
-
-                <label className="field">
-                  <span>K2 Research</span>
-                  <input
-                    type="number"
-                    value={newAtsDraft.k2Research}
-                    onChange={(e) =>
-                      setNewAtsDraft({
-                        ...newAtsDraft,
-                        k2Research: Number(e.target.value),
-                      })
-                    }
-                  />
-                </label>
-
-                <label className="field">
-                  <span>K3 Service</span>
-                  <input
-                    type="number"
-                    value={newAtsDraft.k3Service}
-                    onChange={(e) =>
-                      setNewAtsDraft({
-                        ...newAtsDraft,
-                        k3Service: Number(e.target.value),
-                      })
-                    }
-                  />
-                </label>
-              </div>
-
-              <label className="field">
-                <span>Remarks</span>
-                <textarea
-                  value={newAtsDraft.remarks}
-                  onChange={(e) =>
-                    setNewAtsDraft({ ...newAtsDraft, remarks: e.target.value })
-                  }
-                  placeholder="You can press Enter for paragraph breaks..."
-                />
-              </label>
-            </div>
-
-            <div className="modal-footer">
-              <button className="primary-button full-width" onClick={saveAtsEntry}>
-                Save ATS Entry
               </button>
             </div>
           </div>
@@ -3425,10 +3305,7 @@ export default function App() {
               <h3>Manage Committee - {manageCommitteeData.name}</h3>
               <button
                 className="ghost-button compact"
-                onClick={() => {
-                  setManageCommitteeData(null);
-                  setNewMemberDraft({ lecturerName: "", position: "" });
-                }}
+                onClick={() => setManageCommitteeData(null)}
               >
                 Close
               </button>
@@ -3451,21 +3328,17 @@ export default function App() {
                 <label className="field">
                   <span>Position</span>
                   <input
-                    type="text"
                     value={newMemberDraft.position}
                     onChange={(e) =>
-                      setNewMemberDraft((prev) => ({
-                        ...prev,
-                        position: e.target.value,
-                      }))
+                      setNewMemberDraft((prev) => ({ ...prev, position: e.target.value }))
                     }
-                    placeholder="Committee role..."
+                    placeholder="Committee position"
                   />
                 </label>
               </div>
 
               <button className="primary-button compact section-action" onClick={saveCommitteeMember}>
-                Add / Update Member
+                Save Member
               </button>
 
               <div className="table-wrapper">
@@ -3498,8 +3371,8 @@ export default function App() {
 
                     {manageCommitteeData.members.length === 0 && (
                       <tr>
-                        <td colSpan="3" className="text-center muted-copy">
-                          No members assigned yet.
+                        <td colSpan={3} className="text-center muted-copy">
+                          No members added yet.
                         </td>
                       </tr>
                     )}
@@ -3543,8 +3416,8 @@ export default function App() {
 
                     {viewCommitteeData.members.length === 0 && (
                       <tr>
-                        <td colSpan="2" className="text-center muted-copy">
-                          No committee members found.
+                        <td colSpan={2} className="text-center muted-copy">
+                          No members assigned.
                         </td>
                       </tr>
                     )}
@@ -3560,7 +3433,10 @@ export default function App() {
         <div className="global-overlay">
           <div className="modal-content center-modal">
             <div className="modal-header">
-              <h3>Lecturer Committees</h3>
+              <h3>
+                Committees -{" "}
+                {lecturers.find((lecturer) => lecturer.id === viewLecturerComsId)?.name || ""}
+              </h3>
               <button className="ghost-button compact" onClick={() => setViewLecturerComsId(null)}>
                 Close
               </button>
@@ -3578,7 +3454,7 @@ export default function App() {
                   </thead>
                   <tbody>
                     {getLecturerCommittees(viewLecturerComsId).map((committee) => (
-                      <tr key={`${committee.committeeId}-${committee.position}`}>
+                      <tr key={committee.committeeId}>
                         <td>{committee.committeeName}</td>
                         <td>{committee.category}</td>
                         <td>{committee.position}</td>
@@ -3587,8 +3463,8 @@ export default function App() {
 
                     {getLecturerCommittees(viewLecturerComsId).length === 0 && (
                       <tr>
-                        <td colSpan="3" className="text-center muted-copy">
-                          No committee assignments found.
+                        <td colSpan={3} className="text-center muted-copy">
+                          No committee assignments.
                         </td>
                       </tr>
                     )}
@@ -3602,21 +3478,21 @@ export default function App() {
 
       {confirmConfig.isOpen && (
         <div className="global-overlay">
-          <div className="modal-content center-modal confirm-modal">
-            <div className="modal-header">
+          <div className="confirm-modal">
+            <div className="confirm-modal-header">
               <h3>{confirmConfig.title}</h3>
             </div>
-            <div className="modal-body">
+            <div className="confirm-modal-body">
               <p>{confirmConfig.message}</p>
             </div>
-            <div className="modal-footer confirm-buttons">
-              <button
-                className="ghost-button"
-                onClick={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
-              >
+            <div className="confirm-modal-footer">
+              <button className="ghost-button compact" onClick={closeConfirm}>
                 Cancel
               </button>
-              <button className="primary-button" onClick={confirmConfig.onConfirm}>
+              <button
+                className="primary-button compact"
+                onClick={() => confirmConfig.onConfirm && confirmConfig.onConfirm()}
+              >
                 Confirm
               </button>
             </div>
