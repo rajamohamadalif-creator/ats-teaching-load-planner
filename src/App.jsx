@@ -125,7 +125,7 @@ const RAW_LECTURERS = [
   "Raja Mohamad Alif Raja Mohamad Adnan (YM)",
   "Rayner Naili",
   "Rita Mardhatillah Umar Rauf",
-  "Rizal Ezuan Zulkifly Tony",
+  "Rizal Ezuan Zulkafli Tony",
   "Ruviyamin Ruslan",
   "Sarah Alia Ahmad Jamal",
   "Shahanum Mohd Shah (Prof Dr.)",
@@ -250,7 +250,6 @@ const INITIAL_GROUPS = RAW_GROUPS.map((groupName, i) => ({
 
 const INITIAL_LECTURERS = RAW_LECTURERS.map((name, i) => {
   let atsEntries = [];
-
   if (i === 0) {
     atsEntries = [
       {
@@ -488,7 +487,7 @@ function SearchableSingleSelect({
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
-            onChange(e.target.value, false);
+            onChange?.(e.target.value, false);
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
@@ -501,7 +500,7 @@ function SearchableSingleSelect({
             className="clear-btn"
             onClick={() => {
               setQuery("");
-              onChange("", true);
+              onChange?.("", true);
             }}
           >
             ×
@@ -509,7 +508,7 @@ function SearchableSingleSelect({
         ) : null}
       </div>
 
-      {isOpen && filteredOptions.length > 0 && (
+      {isOpen && filteredOptions.length > 0 ? (
         <ul className="autocomplete-dropdown">
           {filteredOptions.map((item) => (
             <li
@@ -517,7 +516,7 @@ function SearchableSingleSelect({
               onMouseDown={(e) => {
                 e.preventDefault();
                 setQuery(item);
-                onChange(item, true);
+                onChange?.(item, true);
                 setIsOpen(false);
               }}
             >
@@ -525,7 +524,7 @@ function SearchableSingleSelect({
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -538,6 +537,7 @@ function SearchableCourseMultiSelect({
 }) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+
   const safeSelected = Array.isArray(selected) ? selected : [];
 
   const filteredOptions = options.filter((item) => {
@@ -547,13 +547,13 @@ function SearchableCourseMultiSelect({
   });
 
   const addItem = (value) => {
-    onChange([...safeSelected, value]);
+    onChange?.([...safeSelected, value]);
     setQuery("");
     setIsOpen(false);
   };
 
   const removeItem = (value) => {
-    onChange(safeSelected.filter((item) => item !== value));
+    onChange?.(safeSelected.filter((item) => item !== value));
   };
 
   return (
@@ -573,7 +573,6 @@ function SearchableCourseMultiSelect({
             </button>
           </span>
         ))}
-
         <input
           className="autocomplete-input"
           value={query}
@@ -583,11 +582,11 @@ function SearchableCourseMultiSelect({
           }}
           onFocus={() => setIsOpen(true)}
           onBlur={() => setTimeout(() => setIsOpen(false), 150)}
-          placeholder={safeSelected.length ? "" : placeholder}
+          placeholder={!safeSelected.length ? placeholder : ""}
         />
       </div>
 
-      {isOpen && filteredOptions.length > 0 && (
+      {isOpen && filteredOptions.length > 0 ? (
         <ul className="autocomplete-dropdown">
           {filteredOptions.map((item) => (
             <li
@@ -601,7 +600,7 @@ function SearchableCourseMultiSelect({
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -639,6 +638,7 @@ export default function App() {
   const [selectedDepartment, setSelectedDepartment] = useState("All Departments");
   const [selectedLecturerId, setSelectedLecturerId] = useState(null);
   const [groupFilterDept, setGroupFilterDept] = useState("All");
+
   const [settingsTab, setSettingsTab] = useState("general");
   const [comSettingsTab, setComSettingsTab] = useState(COMMITTEE_CATEGORIES[0]);
   const [userRoleTab, setUserRoleTab] = useState("admin");
@@ -646,6 +646,8 @@ export default function App() {
   const [isAddAtsModalOpen, setIsAddAtsModalOpen] = useState(false);
   const [newAtsDraft, setNewAtsDraft] = useState(createBlankAtsEntry());
   const [selectedCourseDisplays, setSelectedCourseDisplays] = useState([]);
+  const [selectedProgramDisplays, setSelectedProgramDisplays] = useState([]);
+  const [selectedGroupDisplays, setSelectedGroupDisplays] = useState([]);
 
   const [lecSearchName, setLecSearchName] = useState("");
   const [lecSearchDept, setLecSearchDept] = useState("");
@@ -655,10 +657,8 @@ export default function App() {
   const [searchProgram, setSearchProgram] = useState("");
   const [searchCourse, setSearchCourse] = useState("");
   const [filterCourseDept, setFilterCourseDept] = useState("All");
-
   const [searchGroup, setSearchGroup] = useState("");
   const [filterGroupDept, setFilterGroupDept] = useState("All");
-
   const [searchLecturer, setSearchLecturer] = useState("");
   const [filterLecturerDept, setFilterLecturerDept] = useState("All");
 
@@ -696,10 +696,10 @@ export default function App() {
     currentUser?.role === "guest";
 
   const filteredLecturers = useMemo(() => {
-    return visibleLecturers.filter(
-      (lecturer) =>
-        selectedDepartment === "All Departments" ||
-        lecturer.departments.includes(selectedDepartment)
+    return visibleLecturers.filter((lecturer) =>
+      selectedDepartment === "All Departments"
+        ? true
+        : lecturer.departments.includes(selectedDepartment)
     );
   }, [visibleLecturers, selectedDepartment]);
 
@@ -709,13 +709,15 @@ export default function App() {
   useEffect(() => {
     if (!isAddAtsModalOpen) return;
 
-    const nextSelected = (newAtsDraft.courseCodes || []).map((code, index) => {
+    const nextSelected = newAtsDraft.courseCodes.map((code, index) => {
       const course = visibleCourses.find((item) => item.code === code);
       const fallbackName = newAtsDraft.courseNames?.[index] || "";
-      return `${code} - ${course?.name || fallbackName}`.trim();
+      return `${code} - ${(course?.name || fallbackName).trim()}`;
     });
 
     setSelectedCourseDisplays(nextSelected);
+    setSelectedProgramDisplays(Array.isArray(newAtsDraft.programs) ? newAtsDraft.programs : []);
+    setSelectedGroupDisplays(Array.isArray(newAtsDraft.groups) ? newAtsDraft.groups : []);
   }, [isAddAtsModalOpen, newAtsDraft, visibleCourses]);
 
   const lecturerStatusList = visibleLecturers
@@ -730,7 +732,6 @@ export default function App() {
     const assignedLecturers = visibleLecturers.filter((lecturer) =>
       lecturer.atsEntries.some((entry) => entry.courseCodes.includes(course.code))
     );
-
     return {
       ...course,
       assignedLecturers,
@@ -740,7 +741,6 @@ export default function App() {
   const unassignedCourses = courseUsage.filter(
     (course) => course.assignedLecturers.length === 0
   );
-
   const overAssignedCourses = courseUsage.filter(
     (course) => course.assignedLecturers.length > 1
   );
@@ -804,20 +804,18 @@ export default function App() {
       displayName: matched.username,
       role: selectedLoginRole,
     });
-
     setScreen("dashboard");
     setLoginUsername("");
     setLoginPassword("");
   };
 
-  const handleLogout = () => {
+  const handleLogout = () =>
     confirmAction("Sign Out", "Are you sure you want to sign out?", () => {
       setCurrentUser(null);
       setScreen("login");
       setSelectedLecturerId(null);
       closeConfirm();
     });
-  };
 
   const getLecturerCommittees = (lecturerId) => {
     const result = [];
@@ -845,8 +843,26 @@ export default function App() {
     }));
   };
 
+  const handleAtsProgramsChange = (values) => {
+    setSelectedProgramDisplays(values);
+    setNewAtsDraft((prev) => ({
+      ...prev,
+      programs: values,
+    }));
+  };
+
+  const handleAtsGroupsChange = (values) => {
+    setSelectedGroupDisplays(values);
+    setNewAtsDraft((prev) => ({
+      ...prev,
+      groups: values,
+    }));
+  };
+
   const openEditAtsEntry = (entry) => {
     setNewAtsDraft({ ...entry });
+    setSelectedProgramDisplays(Array.isArray(entry.programs) ? entry.programs : []);
+    setSelectedGroupDisplays(Array.isArray(entry.groups) ? entry.groups : []);
     setIsAddAtsModalOpen(true);
   };
 
@@ -856,9 +872,7 @@ export default function App() {
     setLecturers((prev) =>
       prev.map((lecturer) => {
         if (lecturer.id !== selectedLecturerId) return lecturer;
-
         const exists = lecturer.atsEntries.some((entry) => entry.id === newAtsDraft.id);
-
         return {
           ...lecturer,
           atsEntries: exists
@@ -874,9 +888,11 @@ export default function App() {
     setIsAddAtsModalOpen(false);
     setNewAtsDraft(createBlankAtsEntry());
     setSelectedCourseDisplays([]);
+    setSelectedProgramDisplays([]);
+    setSelectedGroupDisplays([]);
   };
 
-  const deleteAtsEntry = (entryId) => {
+  const deleteAtsEntry = (entryId) =>
     confirmAction(
       "Delete ATS Entry",
       "Are you sure you want to delete this ATS record?",
@@ -895,25 +911,21 @@ export default function App() {
         closeConfirm();
       }
     );
-  };
 
-  const openEditLecturer = (lecturer = null) => {
+  const openEditLecturer = (lecturer = null) =>
     setLecturerDraft(lecturer ? { ...lecturer } : createBlankLecturer());
-  };
 
   const saveLecturer = () => {
     if (!lecturerDraft?.name?.trim()) return;
-
     setLecturers((prev) =>
       prev.some((item) => item.id === lecturerDraft.id)
         ? prev.map((item) => (item.id === lecturerDraft.id ? lecturerDraft : item))
         : [...prev, lecturerDraft]
     );
-
     setLecturerDraft(null);
   };
 
-  const deleteLecturer = (id) => {
+  const deleteLecturer = (id) =>
     confirmAction("Delete Lecturer", "Delete this lecturer?", () => {
       setLecturers((prev) => prev.filter((item) => item.id !== id));
       setCommittees((prev) =>
@@ -924,93 +936,73 @@ export default function App() {
       );
       closeConfirm();
     });
-  };
 
-  const openEditCourse = (course = null) => {
+  const openEditCourse = (course = null) =>
     setCourseDraft(course ? { ...course } : createBlankCourse());
-  };
 
   const saveCourse = () => {
     if (!courseDraft?.code?.trim() || !courseDraft?.name?.trim()) return;
-
     setCoursesList((prev) =>
       prev.some((item) => item.id === courseDraft.id)
         ? prev.map((item) => (item.id === courseDraft.id ? courseDraft : item))
         : [...prev, courseDraft]
     );
-
     setCourseDraft(null);
   };
 
-  const deleteCourse = (id) => {
+  const deleteCourse = (id) =>
     confirmAction("Delete Course", "Delete this course?", () => {
       setCoursesList((prev) => prev.filter((item) => item.id !== id));
       closeConfirm();
     });
-  };
 
-  const openEditProgram = (program = null) => {
+  const openEditProgram = (program = null) =>
     setProgramDraft(program ? { ...program } : createBlankProgram());
-  };
 
   const saveProgram = () => {
     if (!programDraft?.name?.trim()) return;
-
     setProgramsList((prev) =>
       prev.some((item) => item.id === programDraft.id)
         ? prev.map((item) => (item.id === programDraft.id ? programDraft : item))
         : [...prev, programDraft]
     );
-
     setProgramDraft(null);
   };
 
-  const deleteProgram = (id) => {
+  const deleteProgram = (id) =>
     confirmAction("Delete Program", "Delete this program?", () => {
       setProgramsList((prev) => prev.filter((item) => item.id !== id));
       closeConfirm();
     });
-  };
 
-  const openEditGroup = (group = null) => {
+  const openEditGroup = (group = null) =>
     setGroupDraft(group ? { ...group } : createBlankGroup());
-  };
 
   const saveGroup = () => {
     if (!groupDraft?.groupName?.trim()) return;
-
     setGroups((prev) =>
       prev.some((item) => item.id === groupDraft.id)
         ? prev.map((item) => (item.id === groupDraft.id ? groupDraft : item))
         : [...prev, groupDraft]
     );
-
     setGroupDraft(null);
   };
 
-  const deleteGroup = (id) => {
+  const deleteGroup = (id) =>
     confirmAction("Delete Group", "Delete this group?", () => {
       setGroups((prev) => prev.filter((item) => item.id !== id));
       closeConfirm();
     });
-  };
 
-  const openEditUser = (role, user = null) => {
+  const openEditUser = (role, user = null) =>
     setUserDraft(
       user
         ? { ...user, role }
-        : {
-            id: `u-${Date.now()}`,
-            username: "",
-            password: "",
-            role,
-          }
+        : { id: `u-${Date.now()}`, username: "", password: "", role }
     );
-  };
 
   const saveUser = () => {
     if (!userDraft?.username?.trim() || !userDraft?.password?.trim()) return;
-
     setUsers((prev) => {
       const next = { ...prev };
       const roleUsers = next[userDraft.role] || [];
@@ -1019,11 +1011,10 @@ export default function App() {
         : [...roleUsers, userDraft];
       return next;
     });
-
     setUserDraft(null);
   };
 
-  const deleteUser = (role, id) => {
+  const deleteUser = (role, id) =>
     confirmAction("Delete User", "Delete this user?", () => {
       setUsers((prev) => ({
         ...prev,
@@ -1031,7 +1022,6 @@ export default function App() {
       }));
       closeConfirm();
     });
-  };
 
   const saveDeveloperPassword = () => {
     if (!developerPasswordDraft.trim()) return;
@@ -1041,46 +1031,53 @@ export default function App() {
   const toggleHide = (type, id) => {
     if (type === "lecturer") {
       setLecturers((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, isHidden: !item.isHidden } : item))
+        prev.map((item) =>
+          item.id === id ? { ...item, isHidden: !item.isHidden } : item
+        )
       );
     }
-
     if (type === "course") {
       setCoursesList((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, isHidden: !item.isHidden } : item))
+        prev.map((item) =>
+          item.id === id ? { ...item, isHidden: !item.isHidden } : item
+        )
       );
     }
-
     if (type === "program") {
       setProgramsList((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, isHidden: !item.isHidden } : item))
+        prev.map((item) =>
+          item.id === id ? { ...item, isHidden: !item.isHidden } : item
+        )
       );
     }
-
     if (type === "group") {
       setGroups((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, isHidden: !item.isHidden } : item))
+        prev.map((item) =>
+          item.id === id ? { ...item, isHidden: !item.isHidden } : item
+        )
       );
     }
   };
 
   const toggleHideCommittee = (id) => {
     setCommittees((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, isHidden: !item.isHidden } : item))
+      prev.map((item) =>
+        item.id === id ? { ...item, isHidden: !item.isHidden } : item
+      )
     );
   };
 
-  const deleteCommittee = (id) => {
+  const deleteCommittee = (id) =>
     confirmAction("Delete Committee", "Delete this committee?", () => {
       setCommittees((prev) => prev.filter((item) => item.id !== id));
       if (manageCommitteeData?.id === id) setManageCommitteeData(null);
       if (viewCommitteeData?.id === id) setViewCommitteeData(null);
       closeConfirm();
     });
-  };
 
   const saveCommitteeMember = () => {
     if (!manageCommitteeData || !newMemberDraft.lecturerName) return;
+
     const lecturer = lecturers.find((item) => item.name === newMemberDraft.lecturerName);
     if (!lecturer) return;
 
@@ -1105,7 +1102,9 @@ export default function App() {
 
     setManageCommitteeData((prev) => {
       if (!prev) return prev;
-      const cleaned = prev.members.filter((member) => member.lecturerId !== lecturer.id);
+      const cleaned = prev.members.filter(
+        (member) => member.lecturerId !== lecturer.id
+      );
       return {
         ...prev,
         members: [
@@ -1129,7 +1128,9 @@ export default function App() {
         committee.id === manageCommitteeData.id
           ? {
               ...committee,
-              members: committee.members.filter((member) => member.lecturerId !== lecturerId),
+              members: committee.members.filter(
+                (member) => member.lecturerId !== lecturerId
+              ),
             }
           : committee
       )
@@ -1139,13 +1140,15 @@ export default function App() {
       prev
         ? {
             ...prev,
-            members: prev.members.filter((member) => member.lecturerId !== lecturerId),
+            members: prev.members.filter(
+              (member) => member.lecturerId !== lecturerId
+            ),
           }
         : prev
     );
   };
 
-  const archiveSemester = () => {
+  const archiveSemester = () =>
     confirmAction(
       "Archive Semester",
       `Archive all current data as ${globalInfo.semester}?`,
@@ -1166,9 +1169,8 @@ export default function App() {
         closeConfirm();
       }
     );
-  };
 
-  const loadArchive = (archive) => {
+  const loadArchive = (archive) =>
     confirmAction(
       "Load Archive",
       `Load data from ${archive.semester}? Current data will be overwritten.`,
@@ -1178,21 +1180,16 @@ export default function App() {
         setGroups(archive.data.groups);
         setProgramsList(archive.data.programsList);
         setCommittees(archive.data.committees || INITIAL_COMMITTEES);
-        setGlobalInfo((prev) => ({
-          ...prev,
-          semester: archive.semester,
-        }));
+        setGlobalInfo((prev) => ({ ...prev, semester: archive.semester }));
         closeConfirm();
       }
     );
-  };
 
-  const deleteArchive = (id) => {
+  const deleteArchive = (id) =>
     confirmAction("Delete Archive", "Delete this archive?", () => {
       setArchives((prev) => prev.filter((archive) => archive.id !== id));
       closeConfirm();
     });
-  };
 
   const renderSidebar = () => (
     <aside className={`sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
@@ -1200,7 +1197,7 @@ export default function App() {
         <div className="sidebar-top-row">
           <div className="sidebar-brand">
             <div className="brand-mark">ATS</div>
-            {!sidebarCollapsed && (
+            {!sidebarCollapsed ? (
               <div className="sidebar-brand-text">
                 <h2>ATS Planner</h2>
                 <p className="muted-copy small-text">{globalInfo.faculty}</p>
@@ -1209,11 +1206,11 @@ export default function App() {
                   {globalInfo.mode}
                 </span>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
-        <div className="sidebar-divider"></div>
+        <div className="sidebar-divider" />
 
         <div className="sidebar-collapse-row">
           <button
@@ -1221,7 +1218,7 @@ export default function App() {
             onClick={() => setSidebarCollapsed((prev) => !prev)}
             title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {sidebarCollapsed ? "›" : "‹"}
+            {sidebarCollapsed ? "»" : "«"}
           </button>
         </div>
       </div>
@@ -1232,7 +1229,7 @@ export default function App() {
           onClick={() => setScreen("dashboard")}
         >
           <span className="nav-icon">•</span>
-          {!sidebarCollapsed && <span>Dashboard</span>}
+          {!sidebarCollapsed ? <span>Dashboard</span> : null}
         </button>
 
         <button
@@ -1240,7 +1237,7 @@ export default function App() {
           onClick={() => setScreen("groupInfo")}
         >
           <span className="nav-icon">•</span>
-          {!sidebarCollapsed && <span>Group Info</span>}
+          {!sidebarCollapsed ? <span>Group Info</span> : null}
         </button>
 
         <button
@@ -1248,7 +1245,7 @@ export default function App() {
           onClick={() => setScreen("lecturerAts")}
         >
           <span className="nav-icon">•</span>
-          {!sidebarCollapsed && <span>Lecturer ATS</span>}
+          {!sidebarCollapsed ? <span>Lecturer ATS</span> : null}
         </button>
 
         <button
@@ -1256,10 +1253,10 @@ export default function App() {
           onClick={() => setScreen("allLecturersAts")}
         >
           <span className="nav-icon">•</span>
-          {!sidebarCollapsed && <span>All Lecturers ATS</span>}
+          {!sidebarCollapsed ? <span>All Lecturers ATS</span> : null}
         </button>
 
-        {!sidebarCollapsed && (
+        {!sidebarCollapsed ? (
           <div className="other-courses-dropdown">
             <button
               className="nav-link dropdown-toggle"
@@ -1272,7 +1269,7 @@ export default function App() {
               <span>{isOtherCoursesOpen ? "−" : "+"}</span>
             </button>
 
-            {isOtherCoursesOpen && (
+            {isOtherCoursesOpen ? (
               <div className="dropdown-menu">
                 <button
                   className={`nav-link sub-link ${screen === "muf" ? "active" : ""}`}
@@ -1300,29 +1297,32 @@ export default function App() {
                   className={`nav-link sub-link ${screen === "forum" ? "active" : ""}`}
                   onClick={() => setScreen("forum")}
                 >
-                  Forum Colloquium
+                  Forum / Colloquium
                 </button>
               </div>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
       </nav>
 
       <div className="sidebar-footer">
-        {!sidebarCollapsed && currentUser?.role !== "developer" && (
+        {!sidebarCollapsed && currentUser?.role !== "developer" ? (
           <div className="user-status-text">
             Logged in as <strong>{currentUser?.displayName}</strong>
           </div>
-        )}
+        ) : null}
 
-        {canAccessSettings && (
-          <button className="ghost-button footer-btn" onClick={() => setScreen("settings")}>
-            {sidebarCollapsed ? "⚙" : "Settings Admin"}
+        {canAccessSettings ? (
+          <button
+            className="ghost-button footer-btn"
+            onClick={() => setScreen("settings")}
+          >
+            {sidebarCollapsed ? "⚙" : "Settings / Admin"}
           </button>
-        )}
+        ) : null}
 
         <button className="ghost-button red footer-btn" onClick={handleLogout}>
-          {sidebarCollapsed ? "⎋" : "Sign out"}
+          {sidebarCollapsed ? "↩" : "Sign out"}
         </button>
       </div>
     </aside>
@@ -1342,11 +1342,14 @@ export default function App() {
             <p className="eyebrow">Overview</p>
             <h2>Dashboard Insights</h2>
             <p className="muted-copy">
-              Monitor KS workload warnings, over-assigned courses, and missing assignments.
+              Monitor KS workload warnings, over-assigned courses, and missing
+              assignments.
             </p>
           </div>
-
-          <button className="primary-button" onClick={() => setScreen("allLecturersAts")}>
+          <button
+            className="primary-button"
+            onClick={() => setScreen("allLecturersAts")}
+          >
             View All Lecturers ATS
           </button>
         </div>
@@ -1356,17 +1359,14 @@ export default function App() {
             <span className="stat-label">Overload</span>
             <strong>{counts.overload}</strong>
           </div>
-
           <div className="panel stat-card">
             <span className="stat-label">Underload</span>
             <strong>{counts.underload}</strong>
           </div>
-
           <div className="panel stat-card">
             <span className="stat-label">No KS</span>
             <strong>{counts.noKS}</strong>
           </div>
-
           <div className="panel stat-card">
             <span className="stat-label">Unassigned Courses</span>
             <strong>{unassignedCourses.length}</strong>
@@ -1383,7 +1383,10 @@ export default function App() {
                 <strong>{counts.noKS}</strong> no KS.
               </p>
             </div>
-            <button className="ghost-button" onClick={() => setScreen("loadWarningsDetails")}>
+            <button
+              className="ghost-button"
+              onClick={() => setScreen("loadWarningsDetails")}
+            >
               View Full Data
             </button>
           </div>
@@ -1392,11 +1395,14 @@ export default function App() {
             <div>
               <h3>Over-assigned Courses</h3>
               <p className="muted-copy">
-                <strong>{overAssignedCourses.length}</strong> course(s) assigned to multiple
-                lecturers.
+                <strong>{overAssignedCourses.length}</strong> course(s) assigned to
+                multiple lecturers.
               </p>
             </div>
-            <button className="ghost-button" onClick={() => setScreen("overAssignedDetails")}>
+            <button
+              className="ghost-button"
+              onClick={() => setScreen("overAssignedDetails")}
+            >
               View Full Data
             </button>
           </div>
@@ -1405,10 +1411,14 @@ export default function App() {
             <div>
               <h3>Unassigned Courses</h3>
               <p className="muted-copy">
-                <strong>{unassignedCourses.length}</strong> active course(s) not linked to ATS.
+                <strong>{unassignedCourses.length}</strong> active course(s) not
+                linked to ATS.
               </p>
             </div>
-            <button className="ghost-button" onClick={() => setScreen("unassignedDetails")}>
+            <button
+              className="ghost-button"
+              onClick={() => setScreen("unassignedDetails")}
+            >
               View Full Data
             </button>
           </div>
@@ -1422,7 +1432,10 @@ export default function App() {
       <div className="panel">
         <div className="panel-header centered-table-title">
           <h3>Load Warnings - Full Data</h3>
-          <button className="ghost-button compact" onClick={() => setScreen("dashboard")}>
+          <button
+            className="ghost-button compact red"
+            onClick={() => setScreen("dashboard")}
+          >
             Back to Dashboard
           </button>
         </div>
@@ -1466,14 +1479,13 @@ export default function App() {
                   </td>
                 </tr>
               ))}
-
-              {lecturerStatusList.length === 0 && (
+              {lecturerStatusList.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="text-center muted-copy">
                     All lecturers are within KS limits.
                   </td>
                 </tr>
-              )}
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -1486,7 +1498,10 @@ export default function App() {
       <div className="panel">
         <div className="panel-header centered-table-title">
           <h3>Over-assigned Courses - Full Data</h3>
-          <button className="ghost-button compact" onClick={() => setScreen("dashboard")}>
+          <button
+            className="ghost-button compact red"
+            onClick={() => setScreen("dashboard")}
+          >
             Back to Dashboard
           </button>
         </div>
@@ -1523,11 +1538,13 @@ export default function App() {
                       </td>
                     </tr>
 
-                    {isExpanded && (
+                    {isExpanded ? (
                       <tr className="expanded-row-child">
                         <td colSpan={3}>
                           <div className="dropdown-panel-content">
-                            <p className="muted-copy">Lecturers handling {course.code}:</p>
+                            <p className="muted-copy">
+                              Lecturers handling {course.code}:
+                            </p>
                             <ul className="simple-list linked-list">
                               {course.assignedLecturers.map((lecturer) => (
                                 <li key={lecturer.id}>
@@ -1546,18 +1563,18 @@ export default function App() {
                           </div>
                         </td>
                       </tr>
-                    )}
+                    ) : null}
                   </React.Fragment>
                 );
               })}
 
-              {overAssignedCourses.length === 0 && (
+              {overAssignedCourses.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="text-center muted-copy">
                     No overlapping courses.
                   </td>
                 </tr>
-              )}
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -1570,7 +1587,10 @@ export default function App() {
       <div className="panel">
         <div className="panel-header centered-table-title">
           <h3>Unassigned Courses - Full Data</h3>
-          <button className="ghost-button compact" onClick={() => setScreen("dashboard")}>
+          <button
+            className="ghost-button compact red"
+            onClick={() => setScreen("dashboard")}
+          >
             Back to Dashboard
           </button>
         </div>
@@ -1592,14 +1612,13 @@ export default function App() {
                   <td>{(course.programs || []).join(", ")}</td>
                 </tr>
               ))}
-
-              {unassignedCourses.length === 0 && (
+              {unassignedCourses.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="text-center muted-copy">
                     All courses assigned.
                   </td>
                 </tr>
-              )}
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -1627,7 +1646,10 @@ export default function App() {
         <div className="panel">
           <div className="panel-header centered-table-title">
             <h3>All Lecturers ATS</h3>
-            <button className="ghost-button compact" onClick={() => setScreen("dashboard")}>
+            <button
+              className="ghost-button compact red"
+              onClick={() => setScreen("dashboard")}
+            >
               Back to Dashboard
             </button>
           </div>
@@ -1666,7 +1688,6 @@ export default function App() {
                   <th>Action</th>
                 </tr>
               </thead>
-
               <tbody>
                 {filtered.map((lecturer) => {
                   const uniqueGroups = [
@@ -1708,7 +1729,7 @@ export default function App() {
                         </td>
                       </tr>
 
-                      {isExpanded && (
+                      {isExpanded ? (
                         <tr className="expanded-row-child">
                           <td colSpan={7}>
                             <div className="dropdown-panel-content">
@@ -1737,13 +1758,17 @@ export default function App() {
                                         <tr key={entry.id}>
                                           <td>{entry.courseCodes.join(", ")}</td>
                                           <td>{entry.courseNames.join(", ")}</td>
-                                          <td className="programs-cell">{entry.programs.join(", ")}</td>
+                                          <td>{entry.programs.join(", ")}</td>
                                           <td>{getFormattedGroups(entry.groups, groups).join(", ")}</td>
                                           <td className="cell-number">{entry.ks}</td>
                                           <td className="cell-number">{entry.k1Supervision}</td>
                                           <td className="cell-number">{entry.k2Research}</td>
                                           <td className="cell-number">{entry.k3Service}</td>
-                                          <td>{entry.remarks || "-"}</td>
+                                          <td>
+                                            <div className="remarks-cell">
+                                              {entry.remarks || "-"}
+                                            </div>
+                                          </td>
                                         </tr>
                                       ))}
                                     </tbody>
@@ -1755,7 +1780,7 @@ export default function App() {
                             </div>
                           </td>
                         </tr>
-                      )}
+                      ) : null}
                     </React.Fragment>
                   );
                 })}
@@ -1817,18 +1842,20 @@ export default function App() {
               />
             </label>
 
-            {!isReadOnly && selectedLecturer && (
+            {!isReadOnly && selectedLecturer ? (
               <button
                 className="primary-button align-end"
                 onClick={() => {
                   setNewAtsDraft(createBlankAtsEntry());
                   setSelectedCourseDisplays([]);
+                  setSelectedProgramDisplays([]);
+                  setSelectedGroupDisplays([]);
                   setIsAddAtsModalOpen(true);
                 }}
               >
                 Add ATS
               </button>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -1853,7 +1880,6 @@ export default function App() {
                   <span>Total KS</span>
                   <strong>{getTotalKs(selectedLecturer)}</strong>
                 </div>
-
                 <div className="quick-stat-card themed-stat-green">
                   <span>Total Committees</span>
                   <strong>{lecturerCommitteeList.length}</strong>
@@ -1886,10 +1912,9 @@ export default function App() {
                       <th>K2</th>
                       <th>K3</th>
                       <th>Remarks</th>
-                      {!isReadOnly && <th>Action</th>}
+                      {!isReadOnly ? <th>Action</th> : null}
                     </tr>
                   </thead>
-
                   <tbody>
                     {selectedLecturer.atsEntries.map((entry) => (
                       <tr key={entry.id}>
@@ -1901,8 +1926,10 @@ export default function App() {
                         <td className="cell-number">{entry.k1Supervision}</td>
                         <td className="cell-number">{entry.k2Research}</td>
                         <td className="cell-number">{entry.k3Service}</td>
-                        <td>{entry.remarks || "-"}</td>
-                        {!isReadOnly && (
+                        <td>
+                          <div className="remarks-cell">{entry.remarks || "-"}</div>
+                        </td>
+                        {!isReadOnly ? (
                           <td>
                             <div className="actions-cell">
                               <button
@@ -1919,11 +1946,11 @@ export default function App() {
                               </button>
                             </div>
                           </td>
-                        )}
+                        ) : null}
                       </tr>
                     ))}
 
-                    {selectedLecturer.atsEntries.length > 0 && (
+                    {selectedLecturer.atsEntries.length > 0 ? (
                       <tr className="totals-row">
                         <td colSpan={4} className="totals-label-cell">
                           <strong>TOTALS</strong>
@@ -1932,14 +1959,15 @@ export default function App() {
                         <td className="cell-number totals-value-cell">{totals.k1}</td>
                         <td className="cell-number totals-value-cell">{totals.k2}</td>
                         <td className="cell-number totals-value-cell">{totals.k3}</td>
-                        <td className="totals-spacer-cell"></td>
-                        {!isReadOnly && <td className="totals-spacer-cell"></td>}
+                        <td className="totals-spacer-cell" />
+                        {!isReadOnly ? <td className="totals-spacer-cell" /> : null}
                       </tr>
-                    )}
-
-                    {selectedLecturer.atsEntries.length === 0 && (
+                    ) : (
                       <tr>
-                        <td colSpan={isReadOnly ? 9 : 10} className="text-center muted-copy">
+                        <td
+                          colSpan={isReadOnly ? 9 : 10}
+                          className="text-center muted-copy"
+                        >
                           No ATS entries found.
                         </td>
                       </tr>
@@ -1961,8 +1989,8 @@ export default function App() {
   };
 
   const renderGroupInfo = () => {
-    const filtered = visibleGroups.filter(
-      (group) => groupFilterDept === "All" || group.department === groupFilterDept
+    const filtered = visibleGroups.filter((group) =>
+      groupFilterDept === "All" ? true : group.department === groupFilterDept
     );
 
     return (
@@ -2028,13 +2056,13 @@ export default function App() {
                   </tr>
                 ))}
 
-                {filtered.length === 0 && (
+                {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="text-center muted-copy">
                       No groups found.
                     </td>
                   </tr>
-                )}
+                ) : null}
               </tbody>
             </table>
           </div>
@@ -2048,7 +2076,9 @@ export default function App() {
       return (
         <section className="page-grid">
           <div className="panel empty-state">
-            <p className="muted-copy">You do not have permission to access Settings.</p>
+            <p className="muted-copy">
+              You do not have permission to access Settings.
+            </p>
           </div>
         </section>
       );
@@ -2092,7 +2122,7 @@ export default function App() {
           </div>
         </div>
 
-        {settingsTab === "general" && (
+        {settingsTab === "general" ? (
           <div className="panel">
             <div className="form-grid three-cols">
               <label className="field">
@@ -2132,9 +2162,9 @@ export default function App() {
               </label>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {settingsTab === "users" && (
+        {settingsTab === "users" ? (
           <div className="panel">
             <div className="tab-row">
               {visibleUserTabs.map((role) => (
@@ -2148,14 +2178,14 @@ export default function App() {
               ))}
             </div>
 
-            {!isReadOnly && (
+            {!isReadOnly ? (
               <button
                 className="primary-button compact section-action"
                 onClick={() => openEditUser(userRoleTab, null)}
               >
                 Add User
               </button>
-            )}
+            ) : null}
 
             <div className="table-wrapper">
               <table className="data-table">
@@ -2163,7 +2193,7 @@ export default function App() {
                   <tr>
                     <th>Username</th>
                     <th>Password</th>
-                    {!isReadOnly && <th>Actions</th>}
+                    {!isReadOnly ? <th>Actions</th> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -2171,7 +2201,7 @@ export default function App() {
                     <tr key={user.id}>
                       <td>{user.username}</td>
                       <td>{user.password}</td>
-                      {!isReadOnly && (
+                      {!isReadOnly ? (
                         <td className="actions-cell">
                           <button
                             className="ghost-button compact"
@@ -2186,24 +2216,23 @@ export default function App() {
                             Delete
                           </button>
                         </td>
-                      )}
+                      ) : null}
                     </tr>
                   ))}
-
-                  {users[userRoleTab].length === 0 && (
+                  {users[userRoleTab].length === 0 ? (
                     <tr>
                       <td colSpan={isReadOnly ? 2 : 3} className="text-center muted-copy">
                         No users in this role.
                       </td>
                     </tr>
-                  )}
+                  ) : null}
                 </tbody>
               </table>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {settingsTab === "developer" && isDeveloper && (
+        {settingsTab === "developer" && isDeveloper ? (
           <div className="panel">
             <div className="form-grid split-2">
               <label className="field">
@@ -2223,9 +2252,9 @@ export default function App() {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {settingsTab === "committees" && (
+        {settingsTab === "committees" ? (
           <div className="panel">
             <div className="tab-row">
               {COMMITTEE_CATEGORIES.map((category) => (
@@ -2253,10 +2282,7 @@ export default function App() {
                     .filter((committee) => committee.category === comSettingsTab)
                     .sort(sortHiddenLast)
                     .map((committee) => (
-                      <tr
-                        key={committee.id}
-                        className={committee.isHidden ? "hidden-row" : ""}
-                      >
+                      <tr key={committee.id} className={committee.isHidden ? "hidden-row" : ""}>
                         <td>
                           <button
                             className="link-button"
@@ -2292,9 +2318,9 @@ export default function App() {
               </table>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {settingsTab === "programs" && (
+        {settingsTab === "programs" ? (
           <div className="panel">
             <div className="panel-header stack-mobile">
               <input
@@ -2303,12 +2329,14 @@ export default function App() {
                 onChange={(e) => setSearchProgram(e.target.value)}
                 placeholder="Search program..."
               />
-
-              {!isReadOnly && (
-                <button className="primary-button compact" onClick={() => openEditProgram()}>
+              {!isReadOnly ? (
+                <button
+                  className="primary-button compact"
+                  onClick={() => openEditProgram()}
+                >
                   Add Program
                 </button>
-              )}
+              ) : null}
             </div>
 
             <div className="table-wrapper">
@@ -2316,7 +2344,7 @@ export default function App() {
                 <thead>
                   <tr>
                     <th>Program</th>
-                    {!isReadOnly && <th>Actions</th>}
+                    {!isReadOnly ? <th>Actions</th> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -2328,7 +2356,7 @@ export default function App() {
                     .map((program) => (
                       <tr key={program.id} className={program.isHidden ? "hidden-row" : ""}>
                         <td>{program.name}</td>
-                        {!isReadOnly && (
+                        {!isReadOnly ? (
                           <td className="actions-cell">
                             <button
                               className="ghost-button compact"
@@ -2349,16 +2377,16 @@ export default function App() {
                               Delete
                             </button>
                           </td>
-                        )}
+                        ) : null}
                       </tr>
                     ))}
                 </tbody>
               </table>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {settingsTab === "groups" && (
+        {settingsTab === "groups" ? (
           <div className="panel">
             <div className="panel-header stack-mobile">
               <div className="toolbar compact-toolbar">
@@ -2379,12 +2407,14 @@ export default function App() {
                   ))}
                 </select>
               </div>
-
-              {!isReadOnly && (
-                <button className="primary-button compact" onClick={() => openEditGroup()}>
+              {!isReadOnly ? (
+                <button
+                  className="primary-button compact"
+                  onClick={() => openEditGroup()}
+                >
                   Add Group
                 </button>
-              )}
+              ) : null}
             </div>
 
             <div className="table-wrapper">
@@ -2394,7 +2424,7 @@ export default function App() {
                     <th>Group</th>
                     <th>Department</th>
                     <th>Student Count</th>
-                    {!isReadOnly && <th>Actions</th>}
+                    {!isReadOnly ? <th>Actions</th> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -2403,7 +2433,9 @@ export default function App() {
                       (group) =>
                         (filterGroupDept === "All" ||
                           group.department === filterGroupDept) &&
-                        group.groupName.toLowerCase().includes(searchGroup.toLowerCase())
+                        group.groupName
+                          .toLowerCase()
+                          .includes(searchGroup.toLowerCase())
                     )
                     .sort(sortHiddenLast)
                     .map((group) => (
@@ -2411,7 +2443,7 @@ export default function App() {
                         <td>{group.groupName}</td>
                         <td>{group.department}</td>
                         <td>{group.studentCount}</td>
-                        {!isReadOnly && (
+                        {!isReadOnly ? (
                           <td className="actions-cell">
                             <button
                               className="ghost-button compact"
@@ -2432,16 +2464,16 @@ export default function App() {
                               Delete
                             </button>
                           </td>
-                        )}
+                        ) : null}
                       </tr>
                     ))}
                 </tbody>
               </table>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {settingsTab === "lecturers" && (
+        {settingsTab === "lecturers" ? (
           <div className="panel">
             <div className="panel-header stack-mobile">
               <div className="toolbar compact-toolbar">
@@ -2462,12 +2494,14 @@ export default function App() {
                   ))}
                 </select>
               </div>
-
-              {!isReadOnly && (
-                <button className="primary-button compact" onClick={() => openEditLecturer()}>
+              {!isReadOnly ? (
+                <button
+                  className="primary-button compact"
+                  onClick={() => openEditLecturer()}
+                >
                   Add Lecturer
                 </button>
-              )}
+              ) : null}
             </div>
 
             <div className="table-wrapper">
@@ -2478,7 +2512,7 @@ export default function App() {
                     <th>Departments</th>
                     <th>Position</th>
                     <th>Min/Max KS</th>
-                    {!isReadOnly && <th>Actions</th>}
+                    {!isReadOnly ? <th>Actions</th> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -2487,21 +2521,20 @@ export default function App() {
                       (lecturer) =>
                         (filterLecturerDept === "All" ||
                           lecturer.departments.includes(filterLecturerDept)) &&
-                        lecturer.name.toLowerCase().includes(searchLecturer.toLowerCase())
+                        lecturer.name
+                          .toLowerCase()
+                          .includes(searchLecturer.toLowerCase())
                     )
                     .sort(sortHiddenLast)
                     .map((lecturer) => (
-                      <tr
-                        key={lecturer.id}
-                        className={lecturer.isHidden ? "hidden-row" : ""}
-                      >
+                      <tr key={lecturer.id} className={lecturer.isHidden ? "hidden-row" : ""}>
                         <td>{lecturer.name}</td>
                         <td>{lecturer.departments.join(", ")}</td>
                         <td>{lecturer.position}</td>
                         <td className="cell-number">
                           {lecturer.minKS} - {lecturer.maxKS}
                         </td>
-                        {!isReadOnly && (
+                        {!isReadOnly ? (
                           <td className="actions-cell">
                             <button
                               className="ghost-button compact"
@@ -2522,16 +2555,16 @@ export default function App() {
                               Delete
                             </button>
                           </td>
-                        )}
+                        ) : null}
                       </tr>
                     ))}
                 </tbody>
               </table>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {settingsTab === "courses" && (
+        {settingsTab === "courses" ? (
           <div className="panel">
             <div className="panel-header stack-mobile">
               <div className="toolbar compact-toolbar">
@@ -2552,12 +2585,14 @@ export default function App() {
                   ))}
                 </select>
               </div>
-
-              {!isReadOnly && (
-                <button className="primary-button compact" onClick={() => openEditCourse()}>
+              {!isReadOnly ? (
+                <button
+                  className="primary-button compact"
+                  onClick={() => openEditCourse()}
+                >
                   Add Course
                 </button>
-              )}
+              ) : null}
             </div>
 
             <div className="table-wrapper">
@@ -2567,7 +2602,7 @@ export default function App() {
                     <th>Course Code</th>
                     <th>Course Name</th>
                     <th>Programs</th>
-                    {!isReadOnly && <th>Actions</th>}
+                    {!isReadOnly ? <th>Actions</th> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -2576,8 +2611,12 @@ export default function App() {
                       (course) =>
                         (filterCourseDept === "All" ||
                           course.programs.includes(filterCourseDept)) &&
-                        (course.code.toLowerCase().includes(searchCourse.toLowerCase()) ||
-                          course.name.toLowerCase().includes(searchCourse.toLowerCase()))
+                        (course.code
+                          .toLowerCase()
+                          .includes(searchCourse.toLowerCase()) ||
+                          course.name
+                            .toLowerCase()
+                            .includes(searchCourse.toLowerCase()))
                     )
                     .sort(sortHiddenLast)
                     .map((course) => (
@@ -2585,7 +2624,7 @@ export default function App() {
                         <td>{course.code}</td>
                         <td>{course.name}</td>
                         <td>{course.programs.join(", ")}</td>
-                        {!isReadOnly && (
+                        {!isReadOnly ? (
                           <td className="actions-cell">
                             <button
                               className="ghost-button compact"
@@ -2606,16 +2645,16 @@ export default function App() {
                               Delete
                             </button>
                           </td>
-                        )}
+                        ) : null}
                       </tr>
                     ))}
                 </tbody>
               </table>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {settingsTab === "logs" && (
+        {settingsTab === "logs" ? (
           <div className="panel">
             <div className="panel-header centered-table-title">
               <h3>Activity Logs</h3>
@@ -2638,28 +2677,28 @@ export default function App() {
                       <td>{log.action}</td>
                     </tr>
                   ))}
-
-                  {activityLogs.length === 0 && (
+                  {activityLogs.length === 0 ? (
                     <tr>
                       <td colSpan={3} className="text-center muted-copy">
                         No recent activity.
                       </td>
                     </tr>
-                  )}
+                  ) : null}
                 </tbody>
               </table>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {settingsTab === "archives" && (
+        {settingsTab === "archives" ? (
           <div className="panel">
             <div className="panel-header">
               <div>
                 <h3>Archives</h3>
-                <p className="muted-copy">Save the current state to refer back to later.</p>
+                <p className="muted-copy">
+                  Save the current state to refer back to later.
+                </p>
               </div>
-
               <button className="primary-button compact" onClick={archiveSemester}>
                 Archive Current Semester
               </button>
@@ -2695,19 +2734,18 @@ export default function App() {
                       </td>
                     </tr>
                   ))}
-
-                  {archives.length === 0 && (
+                  {archives.length === 0 ? (
                     <tr>
                       <td colSpan={3} className="text-center muted-copy">
                         No archives saved yet.
                       </td>
                     </tr>
-                  )}
+                  ) : null}
                 </tbody>
               </table>
             </div>
           </div>
-        )}
+        ) : null}
       </section>
     );
   };
@@ -2750,7 +2788,7 @@ export default function App() {
       case "servicing":
         return renderPlaceholder("Servicing Codes");
       case "forum":
-        return renderPlaceholder("Forum Colloquium");
+        return renderPlaceholder("Forum / Colloquium");
       default:
         return renderDashboard();
     }
@@ -2779,7 +2817,9 @@ export default function App() {
                 <button
                   type="button"
                   key={role.key}
-                  className={`role-pill ${selectedLoginRole === role.key ? "active" : ""}`}
+                  className={`role-pill ${
+                    selectedLoginRole === role.key ? "active" : ""
+                  }`}
                   onClick={() => setSelectedLoginRole(role.key)}
                 >
                   {role.label}
@@ -2806,7 +2846,7 @@ export default function App() {
               />
             </label>
 
-            {loginError && <p className="error-text">{loginError}</p>}
+            {loginError ? <p className="error-text">{loginError}</p> : null}
 
             <button type="submit" className="primary-button full-width">
               Sign In
@@ -2818,23 +2858,31 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
-      {renderSidebar()}
+    <>
+      <div className="app-shell">
+        {renderSidebar()}
 
-      <main className="main-content">
-        <header className="topbar">
-          <h1>ATS Planner</h1>
-        </header>
+        <main className="main-content">
+          <header className="topbar">
+            <h1>ATS Planner</h1>
+          </header>
+          <div className="main-scroll">{renderMainContent()}</div>
+        </main>
+      </div>
 
-        <div className="main-scroll">{renderMainContent()}</div>
-      </main>
-
-      {isAddAtsModalOpen && (
+      {isAddAtsModalOpen ? (
         <div className="global-overlay">
           <div className="modal-content center-modal">
             <div className="modal-header">
               <h3>{newAtsDraft?.id ? "Add / Edit ATS Entry" : "ATS Entry"}</h3>
-              <button className="ghost-button compact" onClick={() => setIsAddAtsModalOpen(false)}>
+              <button
+                className="ghost-button compact"
+                onClick={() => {
+                  setIsAddAtsModalOpen(false);
+                  setSelectedProgramDisplays([]);
+                  setSelectedGroupDisplays([]);
+                }}
+              >
                 Close
               </button>
             </div>
@@ -2842,137 +2890,125 @@ export default function App() {
             <div className="modal-body">
               <div className="form-grid">
                 <label className="field">
-                  <span>Course Code/Name</span>
+                  <span>Course Code / Name</span>
                   <SearchableCourseMultiSelect
-                    options={visibleCourses.map((course) => `${course.code} - ${course.name}`)}
+                    options={visibleCourses.map(
+                      (course) => `${course.code} - ${course.name}`
+                    )}
                     selected={selectedCourseDisplays}
                     onChange={handleAtsCourseCodesChange}
                     placeholder="Type any part of code or course name..."
                   />
                 </label>
+              </div>
 
-                <div className="form-grid three-cols">
-                  <label className="field">
-                    <span>Programs</span>
-                    <input
-                      value={newAtsDraft.programs.join(", ")}
-                      onChange={(e) =>
-                        setNewAtsDraft((prev) => ({
-                          ...prev,
-                          programs: e.target.value
-                            .split(",")
-                            .map((item) => item.trim())
-                            .filter(Boolean),
-                        }))
-                      }
-                      placeholder="MU110, MU111"
-                    />
-                  </label>
+              <div className="form-grid three-cols">
+                <label className="field">
+                  <span>Programs</span>
+                  <SearchableCourseMultiSelect
+                    options={visiblePrograms.map((program) => program.name)}
+                    selected={selectedProgramDisplays}
+                    onChange={handleAtsProgramsChange}
+                    placeholder="Type or select program..."
+                  />
+                </label>
 
-                  <label className="field">
-                    <span>Groups</span>
-                    <input
-                      value={newAtsDraft.groups.join(", ")}
-                      onChange={(e) =>
-                        setNewAtsDraft((prev) => ({
-                          ...prev,
-                          groups: e.target.value
-                            .split(",")
-                            .map((item) => item.trim())
-                            .filter(Boolean),
-                        }))
-                      }
-                      placeholder="CAMU1101A"
-                    />
-                  </label>
+                <label className="field">
+                  <span>Groups</span>
+                  <SearchableCourseMultiSelect
+                    options={visibleGroups.map((group) => group.groupName)}
+                    selected={selectedGroupDisplays}
+                    onChange={handleAtsGroupsChange}
+                    placeholder="Type or select group..."
+                  />
+                </label>
 
-                  <label className="field">
-                    <span>Contact Hours</span>
-                    <input
-                      type="number"
-                      value={newAtsDraft.contactHours}
-                      onChange={(e) =>
-                        setNewAtsDraft((prev) => ({
-                          ...prev,
-                          contactHours: Number(e.target.value),
-                        }))
-                      }
-                    />
-                  </label>
-                </div>
+                <label className="field">
+                  <span>Contact Hours</span>
+                  <input
+                    type="number"
+                    value={newAtsDraft.contactHours}
+                    onChange={(e) =>
+                      setNewAtsDraft((prev) => ({
+                        ...prev,
+                        contactHours: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </label>
+              </div>
 
-                <div className="form-grid three-cols">
-                  <label className="field">
-                    <span>KS</span>
-                    <input
-                      type="number"
-                      value={newAtsDraft.ks}
-                      onChange={(e) =>
-                        setNewAtsDraft((prev) => ({
-                          ...prev,
-                          ks: Number(e.target.value),
-                        }))
-                      }
-                    />
-                  </label>
+              <div className="form-grid three-cols">
+                <label className="field">
+                  <span>KS</span>
+                  <input
+                    type="number"
+                    value={newAtsDraft.ks}
+                    onChange={(e) =>
+                      setNewAtsDraft((prev) => ({
+                        ...prev,
+                        ks: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </label>
 
-                  <label className="field">
-                    <span>K1</span>
-                    <input
-                      type="number"
-                      value={newAtsDraft.k1Supervision}
-                      onChange={(e) =>
-                        setNewAtsDraft((prev) => ({
-                          ...prev,
-                          k1Supervision: Number(e.target.value),
-                        }))
-                      }
-                    />
-                  </label>
+                <label className="field">
+                  <span>K1</span>
+                  <input
+                    type="number"
+                    value={newAtsDraft.k1Supervision}
+                    onChange={(e) =>
+                      setNewAtsDraft((prev) => ({
+                        ...prev,
+                        k1Supervision: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </label>
 
-                  <label className="field">
-                    <span>K2</span>
-                    <input
-                      type="number"
-                      value={newAtsDraft.k2Research}
-                      onChange={(e) =>
-                        setNewAtsDraft((prev) => ({
-                          ...prev,
-                          k2Research: Number(e.target.value),
-                        }))
-                      }
-                    />
-                  </label>
-                </div>
+                <label className="field">
+                  <span>K2</span>
+                  <input
+                    type="number"
+                    value={newAtsDraft.k2Research}
+                    onChange={(e) =>
+                      setNewAtsDraft((prev) => ({
+                        ...prev,
+                        k2Research: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </label>
+              </div>
 
-                <div className="form-grid split-2">
-                  <label className="field">
-                    <span>K3</span>
-                    <input
-                      type="number"
-                      value={newAtsDraft.k3Service}
-                      onChange={(e) =>
-                        setNewAtsDraft((prev) => ({
-                          ...prev,
-                          k3Service: Number(e.target.value),
-                        }))
-                      }
-                    />
-                  </label>
+              <div className="form-grid split-2">
+                <label className="field">
+                  <span>K3</span>
+                  <input
+                    type="number"
+                    value={newAtsDraft.k3Service}
+                    onChange={(e) =>
+                      setNewAtsDraft((prev) => ({
+                        ...prev,
+                        k3Service: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </label>
 
-                  <label className="field">
-                    <span>Remarks</span>
-                    <textarea
-                      value={newAtsDraft.remarks}
-                      onChange={(e) =>
-                        setNewAtsDraft((prev) => ({
-                          ...prev,
-                          remarks: e.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                </div>
+                <label className="field">
+                  <span>Remarks</span>
+                  <textarea
+                    value={newAtsDraft.remarks}
+                    onChange={(e) =>
+                      setNewAtsDraft((prev) => ({
+                        ...prev,
+                        remarks: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
               </div>
             </div>
 
@@ -2983,14 +3019,17 @@ export default function App() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {lecturerDraft && (
+      {lecturerDraft ? (
         <div className="global-overlay">
           <div className="modal-content center-modal">
             <div className="modal-header">
               <h3>{lecturerDraft.name ? "Edit Lecturer" : "Add Lecturer"}</h3>
-              <button className="ghost-button compact" onClick={() => setLecturerDraft(null)}>
+              <button
+                className="ghost-button compact"
+                onClick={() => setLecturerDraft(null)}
+              >
                 Close
               </button>
             </div>
@@ -3012,7 +3051,10 @@ export default function App() {
                   <select
                     value={lecturerDraft.position}
                     onChange={(e) =>
-                      setLecturerDraft((prev) => ({ ...prev, position: e.target.value }))
+                      setLecturerDraft((prev) => ({
+                        ...prev,
+                        position: e.target.value,
+                      }))
                     }
                   >
                     {POSITION_OPTIONS.map((position) => (
@@ -3091,14 +3133,17 @@ export default function App() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {courseDraft && (
+      {courseDraft ? (
         <div className="global-overlay">
           <div className="modal-content center-modal">
             <div className="modal-header">
               <h3>{courseDraft.code ? "Edit Course" : "Add Course"}</h3>
-              <button className="ghost-button compact" onClick={() => setCourseDraft(null)}>
+              <button
+                className="ghost-button compact"
+                onClick={() => setCourseDraft(null)}
+              >
                 Close
               </button>
             </div>
@@ -3110,7 +3155,10 @@ export default function App() {
                   <input
                     value={courseDraft.code}
                     onChange={(e) =>
-                      setCourseDraft((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))
+                      setCourseDraft((prev) => ({
+                        ...prev,
+                        code: e.target.value.toUpperCase(),
+                      }))
                     }
                   />
                 </label>
@@ -3120,7 +3168,10 @@ export default function App() {
                   <input
                     value={courseDraft.name}
                     onChange={(e) =>
-                      setCourseDraft((prev) => ({ ...prev, name: e.target.value.toUpperCase() }))
+                      setCourseDraft((prev) => ({
+                        ...prev,
+                        name: e.target.value.toUpperCase(),
+                      }))
                     }
                   />
                 </label>
@@ -3150,14 +3201,17 @@ export default function App() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {programDraft && (
+      {programDraft ? (
         <div className="global-overlay">
           <div className="modal-content center-modal">
             <div className="modal-header">
               <h3>{programDraft.name ? "Edit Program" : "Add Program"}</h3>
-              <button className="ghost-button compact" onClick={() => setProgramDraft(null)}>
+              <button
+                className="ghost-button compact"
+                onClick={() => setProgramDraft(null)}
+              >
                 Close
               </button>
             </div>
@@ -3184,14 +3238,17 @@ export default function App() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {groupDraft && (
+      {groupDraft ? (
         <div className="global-overlay">
           <div className="modal-content center-modal">
             <div className="modal-header">
               <h3>{groupDraft.groupName ? "Edit Group" : "Add Group"}</h3>
-              <button className="ghost-button compact" onClick={() => setGroupDraft(null)}>
+              <button
+                className="ghost-button compact"
+                onClick={() => setGroupDraft(null)}
+              >
                 Close
               </button>
             </div>
@@ -3253,14 +3310,17 @@ export default function App() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {userDraft && (
+      {userDraft ? (
         <div className="global-overlay">
           <div className="modal-content center-modal">
             <div className="modal-header">
               <h3>{userDraft.username ? "Edit User" : "Add User"}</h3>
-              <button className="ghost-button compact" onClick={() => setUserDraft(null)}>
+              <button
+                className="ghost-button compact"
+                onClick={() => setUserDraft(null)}
+              >
                 Close
               </button>
             </div>
@@ -3296,9 +3356,9 @@ export default function App() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {manageCommitteeData && (
+      {manageCommitteeData ? (
         <div className="global-overlay">
           <div className="modal-content center-modal">
             <div className="modal-header">
@@ -3319,7 +3379,10 @@ export default function App() {
                     options={lecturers.map((lecturer) => lecturer.name)}
                     selected={newMemberDraft.lecturerName}
                     onChange={(value) =>
-                      setNewMemberDraft((prev) => ({ ...prev, lecturerName: value }))
+                      setNewMemberDraft((prev) => ({
+                        ...prev,
+                        lecturerName: value,
+                      }))
                     }
                     placeholder="Search lecturer..."
                   />
@@ -3330,14 +3393,20 @@ export default function App() {
                   <input
                     value={newMemberDraft.position}
                     onChange={(e) =>
-                      setNewMemberDraft((prev) => ({ ...prev, position: e.target.value }))
+                      setNewMemberDraft((prev) => ({
+                        ...prev,
+                        position: e.target.value,
+                      }))
                     }
                     placeholder="Committee position"
                   />
                 </label>
               </div>
 
-              <button className="primary-button compact section-action" onClick={saveCommitteeMember}>
+              <button
+                className="primary-button compact section-action"
+                onClick={saveCommitteeMember}
+              >
                 Save Member
               </button>
 
@@ -3352,7 +3421,9 @@ export default function App() {
                   </thead>
                   <tbody>
                     {manageCommitteeData.members.map((member) => {
-                      const lecturer = lecturers.find((item) => item.id === member.lecturerId);
+                      const lecturer = lecturers.find(
+                        (item) => item.id === member.lecturerId
+                      );
                       return (
                         <tr key={member.lecturerId}>
                           <td>{lecturer?.name || member.lecturerId}</td>
@@ -3369,27 +3440,30 @@ export default function App() {
                       );
                     })}
 
-                    {manageCommitteeData.members.length === 0 && (
+                    {manageCommitteeData.members.length === 0 ? (
                       <tr>
                         <td colSpan={3} className="text-center muted-copy">
                           No members added yet.
                         </td>
                       </tr>
-                    )}
+                    ) : null}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {viewCommitteeData && (
+      {viewCommitteeData ? (
         <div className="global-overlay">
           <div className="modal-content center-modal">
             <div className="modal-header">
               <h3>{viewCommitteeData.name}</h3>
-              <button className="ghost-button compact" onClick={() => setViewCommitteeData(null)}>
+              <button
+                className="ghost-button compact"
+                onClick={() => setViewCommitteeData(null)}
+              >
                 Close
               </button>
             </div>
@@ -3405,7 +3479,9 @@ export default function App() {
                   </thead>
                   <tbody>
                     {viewCommitteeData.members.map((member) => {
-                      const lecturer = lecturers.find((item) => item.id === member.lecturerId);
+                      const lecturer = lecturers.find(
+                        (item) => item.id === member.lecturerId
+                      );
                       return (
                         <tr key={member.lecturerId}>
                           <td>{lecturer?.name || member.lecturerId}</td>
@@ -3414,30 +3490,33 @@ export default function App() {
                       );
                     })}
 
-                    {viewCommitteeData.members.length === 0 && (
+                    {viewCommitteeData.members.length === 0 ? (
                       <tr>
                         <td colSpan={2} className="text-center muted-copy">
                           No members assigned.
                         </td>
                       </tr>
-                    )}
+                    ) : null}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {viewLecturerComsId && (
+      {viewLecturerComsId ? (
         <div className="global-overlay">
           <div className="modal-content center-modal">
             <div className="modal-header">
               <h3>
                 Committees -{" "}
-                {lecturers.find((lecturer) => lecturer.id === viewLecturerComsId)?.name || ""}
+                {lecturers.find((lecturer) => lecturer.id === viewLecturerComsId)?.name}
               </h3>
-              <button className="ghost-button compact" onClick={() => setViewLecturerComsId(null)}>
+              <button
+                className="ghost-button compact"
+                onClick={() => setViewLecturerComsId(null)}
+              >
                 Close
               </button>
             </div>
@@ -3461,44 +3540,44 @@ export default function App() {
                       </tr>
                     ))}
 
-                    {getLecturerCommittees(viewLecturerComsId).length === 0 && (
+                    {getLecturerCommittees(viewLecturerComsId).length === 0 ? (
                       <tr>
                         <td colSpan={3} className="text-center muted-copy">
                           No committee assignments.
                         </td>
                       </tr>
-                    )}
+                    ) : null}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {confirmConfig.isOpen && (
+      {confirmConfig.isOpen ? (
         <div className="global-overlay">
-          <div className="confirm-modal">
-            <div className="confirm-modal-header">
+          <div className="modal-content center-modal confirm-modal">
+            <div className="modal-header">
               <h3>{confirmConfig.title}</h3>
             </div>
-            <div className="confirm-modal-body">
+            <div className="modal-body">
               <p>{confirmConfig.message}</p>
             </div>
-            <div className="confirm-modal-footer">
+            <div className="modal-footer">
               <button className="ghost-button compact" onClick={closeConfirm}>
                 Cancel
               </button>
               <button
-                className="primary-button compact"
-                onClick={() => confirmConfig.onConfirm && confirmConfig.onConfirm()}
+                className="ghost-button compact red"
+                onClick={confirmConfig.onConfirm}
               >
                 Confirm
               </button>
             </div>
           </div>
         </div>
-      )}
-    </div>
+      ) : null}
+    </>
   );
 }

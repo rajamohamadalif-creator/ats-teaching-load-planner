@@ -74,10 +74,7 @@ textarea {
   border-radius: 12px;
   padding: 0.7rem 0.85rem;
   outline: none;
-  transition:
-    border-color 0.16s ease,
-    box-shadow 0.16s ease,
-    background 0.16s ease;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
 }
 
 input:focus,
@@ -466,9 +463,12 @@ strong {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  background:
-    linear-gradient(135deg, rgba(115, 163, 255, 0.14), rgba(73, 210, 179, 0.08)),
-    var(--panel);
+  background: linear-gradient(
+    135deg,
+    rgba(115, 163, 255, 0.14),
+    rgba(73, 210, 179, 0.08),
+    var(--panel)
+  );
   border-color: rgba(115, 163, 255, 0.24);
 }
 
@@ -619,11 +619,7 @@ strong {
   padding: 0.58rem 0.95rem;
   font-size: 0.86rem;
   font-weight: 700;
-  transition:
-    filter 0.16s ease,
-    transform 0.16s ease,
-    background 0.16s ease,
-    border-color 0.16s ease;
+  transition: filter 0.16s ease, transform 0.16s ease, background 0.16s ease, border-color 0.16s ease;
 }
 
 .primary-button {
@@ -846,24 +842,30 @@ strong {
 .ats-detailed-table th:nth-child(1) {
   width: 120px;
 }
+
 .ats-detailed-table th:nth-child(2) {
   width: 240px;
 }
+
 .ats-detailed-table th:nth-child(3) {
   width: 110px;
 }
+
 .ats-detailed-table th:nth-child(4) {
   width: 180px;
 }
+
 .ats-detailed-table th:nth-child(5),
 .ats-detailed-table th:nth-child(6),
 .ats-detailed-table th:nth-child(7),
 .ats-detailed-table th:nth-child(8) {
   width: 70px;
 }
+
 .ats-detailed-table th:nth-child(9) {
   width: 220px;
 }
+
 .ats-detailed-table th:nth-child(10) {
   width: 120px;
 }
@@ -875,21 +877,26 @@ strong {
 .expanded-ats-table th:nth-child(1) {
   width: 115px;
 }
+
 .expanded-ats-table th:nth-child(2) {
   width: 220px;
 }
+
 .expanded-ats-table th:nth-child(3) {
   width: 100px;
 }
+
 .expanded-ats-table th:nth-child(4) {
   width: 170px;
 }
+
 .expanded-ats-table th:nth-child(5),
 .expanded-ats-table th:nth-child(6),
 .expanded-ats-table th:nth-child(7),
 .expanded-ats-table th:nth-child(8) {
   width: 62px;
 }
+
 .expanded-ats-table th:nth-child(9) {
   width: 180px;
 }
@@ -1233,6 +1240,13 @@ strong {
 .modal-body {
   padding: 1rem 1.15rem;
   overflow-y: auto;
+}
+
+/* Work 15: preserve ATS remarks line breaks in table cells */
+.remarks-cell {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.45;
 }
 
 @media (max-width: 1180px) {
